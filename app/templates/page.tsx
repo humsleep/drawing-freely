@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 
 /**
  * 무료 도안 화면  MVP v0
@@ -76,9 +77,9 @@ export default function TemplatesPage() {
     <main className="mx-auto max-w-md pb-28 sm:max-w-2xl">
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 pt-6">
-        <a href="/" className="text-sm font-medium text-stone-500">
+        <Link href="/" className="text-sm font-medium text-stone-500">
           ← 둘러보기
-        </a>
+        </Link>
         <span
           className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700"
           aria-label="전부 무료"
@@ -364,7 +365,7 @@ function TabItem({
   children: ReactNode;
 }) {
   return (
-    <a
+    <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={
@@ -374,6 +375,6 @@ function TabItem({
     >
       {children}
       <span>{label}</span>
-    </a>
+    </Link>
   );
 }

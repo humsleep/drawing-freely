@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 /**
  * 랭킹 화면  MVP v0
@@ -71,9 +72,9 @@ export default function RankingPage() {
     <main className="mx-auto max-w-md pb-28 sm:max-w-2xl">
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 pt-6">
-        <a href="/" className="text-sm font-medium text-stone-500">
+        <Link href="/" className="text-sm font-medium text-stone-500">
           ← 둘러보기
-        </a>
+        </Link>
         <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
           이번 주
         </span>
@@ -373,7 +374,7 @@ function TabItem({
   children: ReactNode;
 }) {
   return (
-    <a
+    <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={
@@ -383,6 +384,6 @@ function TabItem({
     >
       {children}
       <span>{label}</span>
-    </a>
+    </Link>
   );
 }

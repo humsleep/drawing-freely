@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 /**
  * 랜딩 페이지 (MVP v0)
@@ -172,7 +173,7 @@ export default function Home() {
 
       {/* 랭킹 진입 카드 */}
       <section id="ranking" className="px-5 pt-10">
-        <a
+        <Link
           href="/ranking"
           className="flex items-center justify-between rounded-2xl bg-stone-900 px-5 py-4 text-white shadow-sm"
         >
@@ -192,7 +193,7 @@ export default function Home() {
           >
             <path d="M9 6l6 6-6 6" />
           </svg>
-        </a>
+        </Link>
       </section>
 
       {/* 안전 안내 */}
@@ -275,7 +276,7 @@ function QuickLink({
   label: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white px-3 py-4 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
     >
@@ -283,7 +284,7 @@ function QuickLink({
         {emoji}
       </span>
       {label}
-    </a>
+    </Link>
   );
 }
 
@@ -299,7 +300,7 @@ function TabItem({
   children: ReactNode;
 }) {
   return (
-    <a
+    <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={
@@ -309,7 +310,7 @@ function TabItem({
     >
       {children}
       <span>{label}</span>
-    </a>
+    </Link>
   );
 }
 

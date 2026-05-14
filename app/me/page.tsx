@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import { requiresPublishConfirm } from "@/lib/policy";
 
 /**
  * 내 작품 (= 자랑하기 컨트롤 화면)  MVP v0
@@ -58,14 +60,15 @@ export default function MyWorksPage() {
   }
 
   function onTogglePublic(w: Work) {
-    if (!w.isPublic) {
+    const next = !w.isPublic;
+    if (requiresPublishConfirm(w.isPublic, next)) {
       const ok = window.confirm(
         "다른 사람들도 이 작품을 볼 수 있어요. 공개할까요?",
       );
       if (!ok) return;
     }
-    update(w.id, { isPublic: !w.isPublic });
-    showToast(w.isPublic ? "이제 나만 볼 수 있어요." : "갤러리에 공개됐어요.");
+    update(w.id, { isPublic: next });
+    showToast(next ? "갤러리에 공개됐어요." : "이제 나만 볼 수 있어요.");
   }
 
   async function onShare(w: Work) {
@@ -94,9 +97,9 @@ export default function MyWorksPage() {
     <main className="mx-auto max-w-md pb-28 sm:max-w-2xl">
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 pt-6">
-        <a href="/" className="text-sm font-medium text-stone-500">
+        <Link href="/" className="text-sm font-medium text-stone-500">
           ← 둘러보기
-        </a>
+        </Link>
         <a
           href="#settings"
           className="rounded-full px-3 py-1.5 text-sm font-medium text-stone-500 hover:bg-stone-100"
@@ -116,7 +119,7 @@ export default function MyWorksPage() {
           {" · "}공개 {publicCount}개
         </p>
 
-        <a
+        <Link
           href="/#create"
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-3.5 text-base font-bold text-white shadow-sm active:scale-[0.98]"
         >
@@ -133,7 +136,7 @@ export default function MyWorksPage() {
             <path d="M12 5v14M5 12h14" />
           </svg>
           새로 만들기
-        </a>
+        </Link>
       </section>
 
       {/* 작품 카드 리스트 */}
@@ -350,12 +353,12 @@ function EmptyState() {
       <p className="mt-1 text-sm text-stone-600">
         사진 한 장으로 도안을 만들어 보세요.
       </p>
-      <a
+      <Link
         href="/#create"
         className="mt-4 inline-flex items-center justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-bold text-white"
       >
         새로 만들기
-      </a>
+      </Link>
     </div>
   );
 }
@@ -372,7 +375,7 @@ function TabItem({
   children: ReactNode;
 }) {
   return (
-    <a
+    <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={
@@ -382,6 +385,6 @@ function TabItem({
     >
       {children}
       <span>{label}</span>
-    </a>
+    </Link>
   );
 }
