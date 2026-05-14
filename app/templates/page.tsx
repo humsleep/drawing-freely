@@ -1,71 +1,40 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 
 /**
  * 무료 도안 화면  MVP v0
  *
- * - 시즌/이벤트 하이라이트 1개 (큰 카드)
- * - 연령대별 추천 (탭으로 필터 — 복잡한 다중 필터는 만들지 않음)
- * - 테마별 도안 그리드 (동물/탈것/계절/우주/판타지/일상)
- * - 카드별 "받기" 버튼 = MVP에선 토스트만, 백엔드 붙으면 PDF 다운로드로 연결
- *
- * NOTE: 도안 파일/이미지 자산은 아직 없음. 시각만 완성. v1에 실제 파일·다운로드 카운트.
+ * 신뢰 회복 후 단순화:
+ * - 연령대 필터 탭 제거 (출시 직후 데이터 적음 → 빈 그리드 부각 위험)
+ * - 이벤트 카드, 테마 카드의 죽은 앵커 제거 (보이는 만큼만 약속)
+ * - 카드별 "받기" 버튼은 유지 — 토스트로 흐름 마감 (v1에서 실제 PDF로 교체)
  */
-
-type AgeBand = "4-6" | "7-9" | "10-12" | "all";
-type Theme = "animal" | "vehicle" | "season" | "space" | "fantasy" | "daily";
 
 type Template = {
   id: string;
   title: string;
-  theme: Theme;
-  ageBand: AgeBand;
+  ageBand: "4-6" | "7-9" | "10-12" | "all";
   hue: number;
   emoji: string;
   isNew?: boolean;
 };
 
 const TEMPLATES: Template[] = [
-  { id: "t1", title: "사자 가족", theme: "animal", ageBand: "4-6", hue: 35, emoji: "🦁" },
-  { id: "t2", title: "기차 여행", theme: "vehicle", ageBand: "7-9", hue: 215, emoji: "🚂", isNew: true },
-  { id: "t3", title: "벚꽃 거리", theme: "season", ageBand: "all", hue: 330, emoji: "🌸" },
-  { id: "t4", title: "우주 비행", theme: "space", ageBand: "10-12", hue: 250, emoji: "🚀" },
-  { id: "t5", title: "정글 친구", theme: "animal", ageBand: "4-6", hue: 120, emoji: "🐯" },
-  { id: "t6", title: "바닷가", theme: "season", ageBand: "7-9", hue: 200, emoji: "🏖️" },
-  { id: "t7", title: "유니콘 마법", theme: "fantasy", ageBand: "all", hue: 300, emoji: "🦄", isNew: true },
-  { id: "t8", title: "우리 집", theme: "daily", ageBand: "4-6", hue: 25, emoji: "🏡" },
-  { id: "t9", title: "공룡 세상", theme: "fantasy", ageBand: "7-9", hue: 95, emoji: "🦖" },
-];
-
-const THEMES: { id: Theme; label: string; emoji: string }[] = [
-  { id: "animal", label: "동물", emoji: "🐶" },
-  { id: "vehicle", label: "탈것", emoji: "🚗" },
-  { id: "season", label: "계절", emoji: "🌸" },
-  { id: "space", label: "우주", emoji: "🚀" },
-  { id: "fantasy", label: "판타지", emoji: "🦄" },
-  { id: "daily", label: "일상", emoji: "🏡" },
-];
-
-const AGE_BANDS: { id: AgeBand; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "4-6", label: "4–6세" },
-  { id: "7-9", label: "7–9세" },
-  { id: "10-12", label: "10–12세" },
+  { id: "t1", title: "사자 가족", ageBand: "4-6", hue: 35, emoji: "🦁" },
+  { id: "t2", title: "기차 여행", ageBand: "7-9", hue: 215, emoji: "🚂", isNew: true },
+  { id: "t3", title: "벚꽃 거리", ageBand: "all", hue: 330, emoji: "🌸" },
+  { id: "t4", title: "우주 비행", ageBand: "10-12", hue: 250, emoji: "🚀" },
+  { id: "t5", title: "정글 친구", ageBand: "4-6", hue: 120, emoji: "🐯" },
+  { id: "t6", title: "바닷가", ageBand: "7-9", hue: 200, emoji: "🏖️" },
+  { id: "t7", title: "유니콘 마법", ageBand: "all", hue: 300, emoji: "🦄", isNew: true },
+  { id: "t8", title: "우리 집", ageBand: "4-6", hue: 25, emoji: "🏡" },
+  { id: "t9", title: "공룡 세상", ageBand: "7-9", hue: 95, emoji: "🦖" },
 ];
 
 export default function TemplatesPage() {
-  const [ageBand, setAgeBand] = useState<AgeBand>("all");
   const [toast, setToast] = useState("");
-
-  const recommended = useMemo(
-    () =>
-      ageBand === "all"
-        ? TEMPLATES.slice(0, 6)
-        : TEMPLATES.filter((t) => t.ageBand === ageBand || t.ageBand === "all"),
-    [ageBand],
-  );
 
   function onDownload(t: Template) {
     // v0: 실제 다운로드 없음. 백엔드 연결 후 /api/templates/[id]/download 로 교체.
@@ -98,12 +67,9 @@ export default function TemplatesPage() {
         </p>
       </section>
 
-      {/* 시즌/이벤트 하이라이트 */}
+      {/* 시즌/이벤트 하이라이트 — 클릭 가능한 진입점이 없는 동안 div로 */}
       <section className="px-5 pt-6">
-        <a
-          href="#event"
-          className="block overflow-hidden rounded-3xl bg-gradient-to-br from-rose-200 via-pink-100 to-amber-100 p-5 shadow-sm"
-        >
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-rose-200 via-pink-100 to-amber-100 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-bold text-rose-700">5월 특별 모음</p>
@@ -111,12 +77,8 @@ export default function TemplatesPage() {
                 봄맞이 도안 8장
               </h2>
               <p className="mt-1 text-sm text-stone-700">
-                꽃, 나비, 봄 동산 — 한 번에 받아요.
+                꽃, 나비, 봄 동산 — 곧 한 번에 받을 수 있어요.
               </p>
-              <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white">
-                <DownloadIcon className="size-3.5" />
-                모음집 받기
-              </span>
             </div>
             <div className="grid shrink-0 grid-cols-2 gap-1.5" aria-hidden>
               <MiniThumb hue={330} emoji="🌸" />
@@ -125,76 +87,20 @@ export default function TemplatesPage() {
               <MiniThumb hue={200} emoji="🐝" />
             </div>
           </div>
-        </a>
+        </div>
       </section>
 
-      {/* 연령대별 추천 */}
-      <section className="px-5 pt-10">
-        <SectionHeader title="우리 아이에게 맞는 도안" />
-
-        <div
-          className="mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-          role="tablist"
-          aria-label="연령대 필터"
-        >
-          {AGE_BANDS.map((b) => (
-            <button
-              key={b.id}
-              role="tab"
-              aria-selected={ageBand === b.id}
-              onClick={() => setAgeBand(b.id)}
-              className={
-                ageBand === b.id
-                  ? "shrink-0 rounded-full bg-stone-900 px-4 py-1.5 text-sm font-semibold text-white"
-                  : "shrink-0 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-stone-700 ring-1 ring-stone-200"
-              }
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
-
+      {/* 도안 그리드 — 필터 없이 전체 */}
+      <section className="px-5 pt-8">
+        <h3 className="text-lg font-extrabold text-stone-900">
+          새로 올라온 도안
+        </h3>
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {recommended.map((t) => (
+          {TEMPLATES.map((t) => (
             <li key={t.id}>
               <TemplateCard template={t} onDownload={() => onDownload(t)} />
             </li>
           ))}
-          {recommended.length === 0 && (
-            <li className="col-span-2 sm:col-span-3">
-              <p className="rounded-2xl bg-white px-4 py-6 text-center text-sm text-stone-500 ring-1 ring-stone-200">
-                해당 연령대 도안을 준비 중이에요.
-              </p>
-            </li>
-          )}
-        </ul>
-      </section>
-
-      {/* 테마별 */}
-      <section className="px-5 pt-10">
-        <SectionHeader title="테마별로 골라보기" />
-        <ul className="mt-4 grid grid-cols-3 gap-3">
-          {THEMES.map((th) => {
-            const count = TEMPLATES.filter((t) => t.theme === th.id).length;
-            return (
-              <li key={th.id}>
-                <a
-                  href={`#theme-${th.id}`}
-                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl bg-white px-2 ring-1 ring-stone-200 hover:bg-stone-50"
-                >
-                  <span className="text-3xl" aria-hidden>
-                    {th.emoji}
-                  </span>
-                  <span className="text-sm font-bold text-stone-900">
-                    {th.label}
-                  </span>
-                  <span className="text-[11px] text-stone-500">
-                    {count}장
-                  </span>
-                </a>
-              </li>
-            );
-          })}
         </ul>
       </section>
 
@@ -216,7 +122,7 @@ export default function TemplatesPage() {
         </div>
       )}
 
-      {/* 하단 탭바 — /, /me, /templates 세 곳에서 동일. 다음 PR에서 공통 컴포넌트로 추출 예정. */}
+      {/* 하단 탭바 */}
       <nav
         aria-label="주요 메뉴"
         className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-white/90 backdrop-blur"
@@ -228,7 +134,7 @@ export default function TemplatesPage() {
               <path d="M5 10v9h14v-9" />
             </svg>
           </TabItem>
-          <TabItem href="/#create" label="만들기">
+          <TabItem href="/create" label="만들기">
             <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -253,10 +159,6 @@ export default function TemplatesPage() {
 
 /* ---------- 인라인 소품들 ---------- */
 
-function SectionHeader({ title }: { title: string }) {
-  return <h3 className="text-lg font-extrabold text-stone-900">{title}</h3>;
-}
-
 function TemplateCard({
   template,
   onDownload,
@@ -266,7 +168,11 @@ function TemplateCard({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
-      <TemplateThumb hue={template.hue} emoji={template.emoji} badge={template.isNew ? "NEW" : undefined} />
+      <TemplateThumb
+        hue={template.hue}
+        emoji={template.emoji}
+        badge={template.isNew ? "NEW" : undefined}
+      />
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-stone-900">

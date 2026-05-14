@@ -120,7 +120,7 @@ export default function MyWorksPage() {
         </p>
 
         <Link
-          href="/#create"
+          href="/create"
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-3.5 text-base font-bold text-white shadow-sm active:scale-[0.98]"
         >
           <svg
@@ -184,12 +184,12 @@ export default function MyWorksPage() {
               <path d="M5 10v9h14v-9" />
             </svg>
           </TabItem>
-          <TabItem href="/#create" label="만들기">
+          <TabItem href="/create" label="만들기">
             <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14M5 12h14" />
             </svg>
           </TabItem>
-          <TabItem href="/#templates" label="도안">
+          <TabItem href="/templates" label="도안">
             <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 3h9l5 5v13H6z" />
               <path d="M14 3v6h6" />
@@ -354,7 +354,7 @@ function EmptyState() {
         사진 한 장으로 도안을 만들어 보세요.
       </p>
       <Link
-        href="/#create"
+        href="/create"
         className="mt-4 inline-flex items-center justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-bold text-white"
       >
         새로 만들기
