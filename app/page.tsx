@@ -95,12 +95,12 @@ export default function Home() {
       <section className="grid grid-cols-3 gap-3 px-5 pt-6">
         <QuickLink href="#templates" emoji="📄" label="무료 도안" />
         <QuickLink href="#popular" emoji="⭐" label="인기 작품" />
-        <QuickLink href="#ranking" emoji="🏆" label="랭킹" />
+        <QuickLink href="/ranking" emoji="🏆" label="랭킹" />
       </section>
 
       {/* 인기 작품 — 자랑하기 갤러리 */}
       <section id="popular" className="px-5 pt-10">
-        <SectionHeader title="이번 주 인기 작품" actionLabel="전체 보기" actionHref="#ranking" />
+        <SectionHeader title="이번 주 인기 작품" actionLabel="전체 보기" actionHref="/ranking" />
 
         {/* 연령대 탭 — 연령대별 인기 콘텐츠 진입점 */}
         <div
@@ -173,7 +173,7 @@ export default function Home() {
       {/* 랭킹 진입 카드 */}
       <section id="ranking" className="px-5 pt-10">
         <a
-          href="#ranking-page"
+          href="/ranking"
           className="flex items-center justify-between rounded-2xl bg-stone-900 px-5 py-4 text-white shadow-sm"
         >
           <div>
