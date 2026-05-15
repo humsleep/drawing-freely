@@ -2,8 +2,8 @@
  * 변환 어댑터 — 사진 → 색칠 도안 SVG.
  *
  * CLAUDE.md 원칙 8번: 변환 호출은 이 한 파일에서만 한다.
- * 실제 외부 API(Replicate/OpenAI 등) 결합 시 `mockConvert` 자리에 어댑터를 끼우고,
- * 호출부(`app/api/convert/route.ts`)는 그대로 둔다.
+ * CLAUDE.md 원칙 7번: 이 모듈은 서버에서만 호출한다(`app/api/convert/route.ts` 경유).
+ * 실제 외부 API 결합 시 `convert()` 본문만 교체하고, 라우트와 호출부는 그대로 둔다.
  */
 
 export type ConvertInput = {
@@ -14,49 +14,30 @@ export type ConvertInput = {
 export type ConvertResult = {
   /** 결과 도안 SVG 마크업 (인쇄·다운로드용) */
   svg: string;
-  /** 결과 메타 — 백엔드 결합 시 채워짐 */
-  meta?: { takenMs: number };
 };
-
-export type ConvertError =
-  | { kind: "unsupported_format" }
-  | { kind: "too_large" }
-  | { kind: "convert_failed" }
-  | { kind: "rate_limited" };
 
 /**
  * MVP v0: 외부 API 결합 전 — 입력 파일 메타만 검증하고 고정 SVG를 반환한다.
- * 동작 형태는 실제 어댑터와 동일하게 Promise + 에러 유니온.
  */
 export async function convert(input: ConvertInput): Promise<ConvertResult> {
   const { file } = input;
 
   if (!file.type.startsWith("image/")) {
-    throw makeError("unsupported_format");
+    throw new Error("unsupported_format");
   }
   // 10 MB 상한 — 모바일에서 흔한 사진 한 장 기준
   if (file.size > 10 * 1024 * 1024) {
-    throw makeError("too_large");
+    throw new Error("too_large");
   }
 
-  const start = performance.now();
   // 외부 API 호출 자리. v0에선 약간의 인공 지연만.
   await new Promise((r) => setTimeout(r, 1200));
-  return {
-    svg: SAMPLE_DRAWING_SVG,
-    meta: { takenMs: Math.round(performance.now() - start) },
-  };
+  return { svg: SAMPLE_DRAWING_SVG };
 }
 
-/** 사용자에게 보여줄 짧은 한글 메시지로 변환. CLAUDE.md UI 4번에 따라 기술 메시지 금지. */
+/** 사용자에게 보여줄 한 문장. CLAUDE.md UI 4번에 따라 기술 메시지 노출 금지. */
 export function convertErrorMessage(): string {
   return "다시 시도해 주세요.";
-}
-
-function makeError(kind: ConvertError["kind"]): Error {
-  const e = new Error(kind);
-  (e as Error & { kind: ConvertError["kind"] }).kind = kind;
-  return e;
 }
 
 /* ---------- 임시 결과 자료 — 실제 어댑터 도입 시 제거 ---------- */

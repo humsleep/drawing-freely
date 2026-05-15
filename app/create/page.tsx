@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
-import { convert, convertErrorMessage } from "@/lib/convert";
+import { convertErrorMessage } from "@/lib/convert";
 
 type Stage = "pick" | "converting" | "result" | "error";
 
@@ -23,7 +23,11 @@ export default function CreatePage() {
     if (!file) return;
     setStage("converting");
     try {
-      const { svg } = await convert({ file });
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/convert", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("convert_failed");
+      const { svg } = (await res.json()) as { svg: string };
       if (abortRef.current) return;
       setSvg(svg);
       setStage("result");
@@ -177,9 +181,12 @@ function ResultStage({
           </svg>
           도안 받기
         </button>
+        <p className="text-center text-xs text-stone-600">
+          A4로 인쇄해서 색칠할 수 있어요.
+        </p>
         <Link
           href="/me"
-          className="rounded-2xl bg-white px-5 py-3.5 text-center text-base font-bold text-stone-900 ring-1 ring-stone-200 active:scale-[0.98]"
+          className="mt-1 rounded-2xl bg-white px-5 py-3.5 text-center text-base font-bold text-stone-900 ring-1 ring-stone-200 active:scale-[0.98]"
         >
           내 작품으로 가기
         </Link>

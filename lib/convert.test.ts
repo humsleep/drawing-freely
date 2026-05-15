@@ -12,7 +12,6 @@ describe("convert (어댑터 계약)", () => {
   it("성공 시 svg 문자열을 반환한다", async () => {
     const result = await convert({ file: fakeFile() });
     expect(result.svg.startsWith("<svg")).toBe(true);
-    expect(result.meta?.takenMs).toBeTypeOf("number");
   });
 
   it("이미지가 아닌 파일은 unsupported_format 으로 거부한다", async () => {
