@@ -1,21 +1,13 @@
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
+import type { Work } from "@/lib/types";
 
-type WorkRow = {
-  id: string;
-  title: string;
-  nickname: string;
-  ageBand: "4-6" | "7-9" | "10-12";
-  likes: number;
-  hue: number;
-};
-
-const POPULAR_WORKS: WorkRow[] = [
-  { id: "w1", title: "우리집 강아지", nickname: "토토", ageBand: "4-6", likes: 128, hue: 18 },
-  { id: "w2", title: "엄마랑 나", nickname: "민서", ageBand: "7-9", likes: 96, hue: 200 },
-  { id: "w3", title: "공룡 친구", nickname: "지호", ageBand: "4-6", likes: 87, hue: 140 },
-  { id: "w4", title: "우주 비행", nickname: "하늘", ageBand: "10-12", likes: 71, hue: 260 },
-  { id: "w5", title: "내 자전거", nickname: "유나", ageBand: "7-9", likes: 64, hue: 40 },
+const POPULAR_WORKS: Work[] = [
+  { id: "w1", title: "우리집 강아지", nickname: "토토", ageBand: "4-6",  isPublic: true, likeCount: 128, hue: 18 },
+  { id: "w2", title: "엄마랑 나",    nickname: "민서", ageBand: "7-9",  isPublic: true, likeCount: 96,  hue: 200 },
+  { id: "w3", title: "공룡 친구",    nickname: "지호", ageBand: "4-6",  isPublic: true, likeCount: 87,  hue: 140 },
+  { id: "w4", title: "우주 비행",    nickname: "하늘", ageBand: "10-12", isPublic: true, likeCount: 71,  hue: 260 },
+  { id: "w5", title: "내 자전거",    nickname: "유나", ageBand: "7-9",  isPublic: true, likeCount: 64,  hue: 40 },
 ];
 
 const MEDALS = ["🥇", "🥈", "🥉"] as const;
@@ -66,7 +58,7 @@ export default function RankingPage() {
                     {rank}
                   </span>
                 )}
-                <WorkThumb hue={w.hue} />
+                <WorkThumb hue={w.hue ?? 0} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-stone-900">{w.title}</p>
                   <p className="truncate text-xs text-stone-500">
@@ -74,7 +66,7 @@ export default function RankingPage() {
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-extrabold text-rose-600">
-                  ❤ {w.likes}
+                  ❤ {w.likeCount}
                 </span>
               </li>
             );
