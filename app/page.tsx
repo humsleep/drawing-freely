@@ -1,16 +1,5 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-
-/**
- * 랜딩 페이지 (MVP v0)
- *
- * 신뢰 회복 후 단순화 — 죽은 진입점 제거, 핵심 액션 1개로 좁힘.
- * - 큰 CTA "사진으로 그림 만들기" → /create (실제 흐름)
- * - 인기 작품: 단순 그리드 6개 (연령대 탭 제거 — 백엔드 후 자녀 프로필 기반으로 부활)
- * - 무료 도안: 가로 스크롤 카드 + 모두 보기 → /templates
- * - 랭킹 진입 카드 → /ranking
- * - 작품/도안 카드는 클릭 가능하게 보이지 않게 (정직한 v0)
- */
+import { TabBar } from "@/app/_components/TabBar";
 
 const POPULAR_WORKS = [
   { id: 1, title: "우리집 강아지", nickname: "토토", ageBand: "4-6", likes: 128, hue: 18 },
@@ -30,8 +19,7 @@ const FREE_TEMPLATES = [
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-md pb-28 sm:max-w-2xl">
-      {/* 헤더 */}
+    <>
       <header className="flex items-center justify-between px-5 pt-6">
         <h1 className="text-lg font-extrabold tracking-tight">
           <span aria-hidden>🎨</span> 그림자유
@@ -54,16 +42,7 @@ export default function Home() {
             href="/create"
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-4 text-base font-bold text-white shadow-md transition active:scale-[0.98]"
           >
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              className="size-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M12 5v14M5 12h14" />
             </svg>
             사진으로 그림 만들기
@@ -71,32 +50,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 빠른 메뉴 — 모두 실제 라우트로 */}
+      {/* 빠른 메뉴 */}
       <section className="grid grid-cols-2 gap-3 px-5 pt-6">
-        <QuickLink href="/templates" emoji="📄" label="무료 도안" />
-        <QuickLink href="/ranking" emoji="🏆" label="랭킹" />
+        <Link
+          href="/templates"
+          className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white px-3 py-4 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
+        >
+          <span className="text-2xl" aria-hidden>📄</span>
+          무료 도안
+        </Link>
+        <Link
+          href="/ranking"
+          className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white px-3 py-4 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
+        >
+          <span className="text-2xl" aria-hidden>🏆</span>
+          랭킹
+        </Link>
       </section>
 
       {/* 인기 작품 */}
       <section className="px-5 pt-10">
-        <SectionHeader
-          title="이번 주 인기 작품"
-          actionLabel="전체 보기"
-          actionHref="/ranking"
-        />
+        <div className="flex items-end justify-between">
+          <h3 className="text-lg font-extrabold text-stone-900">이번 주 인기 작품</h3>
+          <Link href="/ranking" className="text-sm font-semibold text-stone-500 hover:text-stone-900">
+            전체 보기 →
+          </Link>
+        </div>
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {POPULAR_WORKS.map((w) => (
             <li key={w.id}>
-              {/* 상세 페이지 없는 동안 클릭 불가 — 보이는 만큼만 약속 */}
               <WorkThumb hue={w.hue} />
               <div className="mt-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-stone-900">
-                    {w.title}
-                  </p>
-                  <p className="truncate text-xs text-stone-500">
-                    {w.nickname} · {w.ageBand}세
-                  </p>
+                  <p className="truncate text-sm font-semibold text-stone-900">{w.title}</p>
+                  <p className="truncate text-xs text-stone-500">{w.nickname} · {w.ageBand}세</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
                   ❤ {w.likes}
@@ -109,22 +96,19 @@ export default function Home() {
 
       {/* 무료 도안 */}
       <section className="px-5 pt-10">
-        <SectionHeader
-          title="무료 도안"
-          actionLabel="모두 보기"
-          actionHref="/templates"
-        />
-        <p className="mt-1 text-sm text-stone-600">
-          인쇄해서 바로 색칠할 수 있어요.
-        </p>
+        <div className="flex items-end justify-between">
+          <h3 className="text-lg font-extrabold text-stone-900">무료 도안</h3>
+          <Link href="/templates" className="text-sm font-semibold text-stone-500 hover:text-stone-900">
+            모두 보기 →
+          </Link>
+        </div>
+        <p className="mt-1 text-sm text-stone-600">인쇄해서 바로 색칠할 수 있어요.</p>
 
         <ul className="mt-4 -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
           {FREE_TEMPLATES.map((t) => (
             <li key={t.id} className="w-40 shrink-0 sm:w-48">
-              <TemplateThumb hue={t.hue} />
-              <p className="mt-2 truncate text-sm font-semibold text-stone-900">
-                {t.title}
-              </p>
+              <PortraitThumb hue={t.hue} />
+              <p className="mt-2 truncate text-sm font-semibold text-stone-900">{t.title}</p>
               <p className="text-xs text-stone-500">추천 {t.ageBand}세</p>
             </li>
           ))}
@@ -141,16 +125,7 @@ export default function Home() {
             <p className="text-xs font-semibold text-amber-300">🏆 이번 주 랭킹</p>
             <p className="mt-0.5 text-base font-bold">가장 많이 좋아요 받은 작품</p>
           </div>
-          <svg
-            aria-hidden
-            viewBox="0 0 24 24"
-            className="size-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M9 6l6 6-6 6" />
           </svg>
         </Link>
@@ -161,161 +136,37 @@ export default function Home() {
         <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <p className="font-semibold">아이와 함께, 안전하게.</p>
           <p className="mt-1 text-emerald-800">
-            업로드한 사진은 도안 변환 후 자동으로 지워져요. 작품은 부모님이
-            공개를 켤 때만 다른 사람에게 보여요.
+            업로드한 사진은 도안 변환 후 자동으로 지워져요. 작품은 부모님이 공개를 켤 때만 다른 사람에게 보여요.
           </p>
         </div>
       </section>
 
-      {/* 하단 탭 바 */}
-      <nav
-        aria-label="주요 메뉴"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-stone-200 bg-white/90 backdrop-blur"
-      >
-        <div className="mx-auto grid max-w-md grid-cols-4 sm:max-w-2xl">
-          <TabItem href="/" label="둘러보기" active>
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 11.5L12 4l9 7.5" />
-              <path d="M5 10v9h14v-9" />
-            </svg>
-          </TabItem>
-          <TabItem href="/create" label="만들기">
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </TabItem>
-          <TabItem href="/templates" label="도안">
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 3h9l5 5v13H6z" />
-              <path d="M14 3v6h6" />
-            </svg>
-          </TabItem>
-          <TabItem href="/me" label="내 작품">
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0116 0" />
-            </svg>
-          </TabItem>
-        </div>
-      </nav>
-    </main>
+      <TabBar />
+    </>
   );
 }
 
-/* ---------- 인라인 소품들 (이 페이지에서만 쓰임) ---------- */
-
-function SectionHeader({
-  title,
-  actionLabel,
-  actionHref,
-}: {
-  title: string;
-  actionLabel: string;
-  actionHref: string;
-}) {
-  return (
-    <div className="flex items-end justify-between">
-      <h3 className="text-lg font-extrabold text-stone-900">{title}</h3>
-      <Link
-        href={actionHref}
-        className="text-sm font-semibold text-stone-500 hover:text-stone-900"
-      >
-        {actionLabel} →
-      </Link>
-    </div>
-  );
-}
-
-function QuickLink({
-  href,
-  emoji,
-  label,
-}: {
-  href: string;
-  emoji: string;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white px-3 py-4 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
-    >
-      <span className="text-2xl" aria-hidden>
-        {emoji}
-      </span>
-      {label}
-    </Link>
-  );
-}
-
-function TabItem({
-  href,
-  label,
-  active,
-  children,
-}: {
-  href: string;
-  label: string;
-  active?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={
-        "flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium " +
-        (active ? "text-stone-900" : "text-stone-400")
-      }
-    >
-      {children}
-      <span>{label}</span>
-    </Link>
-  );
-}
-
-/* 더미 썸네일 — 실제 이미지는 v1 이후. 색상은 hue로 변주. */
 function WorkThumb({ hue }: { hue: number }) {
   const bg = `hsl(${hue} 80% 92%)`;
   const stroke = `hsl(${hue} 50% 30%)`;
   return (
-    <div
-      className="aspect-square w-full overflow-hidden rounded-2xl"
-      style={{ background: bg }}
-      aria-hidden
-    >
+    <div className="aspect-square w-full overflow-hidden rounded-2xl" style={{ background: bg }} aria-hidden>
       <svg viewBox="0 0 100 100" className="h-full w-full">
         <circle cx="50" cy="42" r="22" fill="none" stroke={stroke} strokeWidth="2.5" />
-        <path
-          d="M22 86 Q50 60 78 86"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
+        <path d="M22 86 Q50 60 78 86" fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
         <circle cx="42" cy="40" r="2" fill={stroke} />
         <circle cx="58" cy="40" r="2" fill={stroke} />
-        <path
-          d="M44 50 Q50 55 56 50"
-          fill="none"
-          stroke={stroke}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
+        <path d="M44 50 Q50 55 56 50" fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
       </svg>
     </div>
   );
 }
 
-function TemplateThumb({ hue }: { hue: number }) {
+function PortraitThumb({ hue }: { hue: number }) {
   const bg = `hsl(${hue} 70% 95%)`;
   const stroke = `hsl(${hue} 45% 35%)`;
   return (
-    <div
-      className="aspect-[3/4] w-full overflow-hidden rounded-2xl ring-1 ring-stone-200"
-      style={{ background: bg }}
-      aria-hidden
-    >
+    <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl ring-1 ring-stone-200" style={{ background: bg }} aria-hidden>
       <svg viewBox="0 0 60 80" className="h-full w-full">
         <rect x="6" y="6" width="48" height="68" rx="4" fill="white" stroke={stroke} strokeWidth="1.5" />
         <path d="M14 30 Q30 14 46 30" fill="none" stroke={stroke} strokeWidth="2" />

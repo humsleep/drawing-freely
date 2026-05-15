@@ -13,11 +13,3 @@ export function requiresPublishConfirm(
 ): boolean {
   return prevIsPublic === false && nextIsPublic === true;
 }
-
-/**
- * 작품이 공개 갤러리·랭킹에 노출 가능한 상태인지.
- * is_public이 true일 때만. (백엔드 RLS와 동일한 기준)
- */
-export function isVisibleInGallery(work: { isPublic: boolean }): boolean {
-  return work.isPublic === true;
-}

@@ -20,7 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        <main className="mx-auto max-w-md pb-28 sm:max-w-2xl">{children}</main>
+      </body>
     </html>
   );
 }
