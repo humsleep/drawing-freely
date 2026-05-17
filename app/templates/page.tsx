@@ -3,15 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
-
-type Template = {
-  id: string;
-  title: string;
-  ageBand: "4-6" | "7-9" | "10-12" | "all";
-  hue: number;
-  emoji: string;
-  isNew?: boolean;
-};
+import type { Template } from "@/lib/types";
 
 const TEMPLATES: Template[] = [
   { id: "t1", title: "사자 가족", ageBand: "4-6", hue: 35, emoji: "🦁" },
@@ -53,28 +45,6 @@ export default function TemplatesPage() {
       </section>
 
       <section className="px-5 pt-6">
-        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-rose-200 via-pink-100 to-amber-100 p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-rose-700">5월 특별 모음</p>
-              <h2 className="mt-1 text-xl font-extrabold leading-tight text-stone-900">
-                봄맞이 도안 8장
-              </h2>
-              <p className="mt-1 text-sm text-stone-700">
-                꽃, 나비, 봄 동산 — 곧 한 번에 받을 수 있어요.
-              </p>
-            </div>
-            <div className="grid shrink-0 grid-cols-2 gap-1.5" aria-hidden>
-              <MiniThumb hue={330} emoji="🌸" />
-              <MiniThumb hue={120} emoji="🦋" />
-              <MiniThumb hue={50} emoji="🌼" />
-              <MiniThumb hue={200} emoji="🐝" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="px-5 pt-8">
         <h3 className="text-lg font-extrabold text-stone-900">새로 올라온 도안</h3>
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {TEMPLATES.map((t) => (
@@ -113,8 +83,8 @@ function TemplateCard({
   template: Template;
   onDownload: () => void;
 }) {
-  const bg = `hsl(${template.hue} 75% 94%)`;
-  const stroke = `hsl(${template.hue} 45% 35%)`;
+  const bg = `hsl(${template.hue ?? 0} 75% 94%)`;
+  const stroke = `hsl(${template.hue ?? 0} 45% 35%)`;
   return (
     <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
       <div className="relative aspect-square w-full overflow-hidden" style={{ background: bg }} aria-hidden>
@@ -154,13 +124,3 @@ function TemplateCard({
   );
 }
 
-function MiniThumb({ hue, emoji }: { hue: number; emoji: string }) {
-  return (
-    <span
-      className="flex size-14 items-center justify-center rounded-xl ring-1 ring-white/60"
-      style={{ background: `hsl(${hue} 75% 92%)` }}
-    >
-      <span className="text-2xl" aria-hidden>{emoji}</span>
-    </span>
-  );
-}

@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
+import type { Template, Work } from "@/lib/types";
 
-const POPULAR_WORKS = [
-  { id: 1, title: "우리집 강아지", nickname: "토토", ageBand: "4-6", likes: 128, hue: 18 },
-  { id: 2, title: "엄마랑 나", nickname: "민서", ageBand: "7-9", likes: 96, hue: 200 },
-  { id: 3, title: "공룡 친구", nickname: "지호", ageBand: "4-6", likes: 87, hue: 140 },
-  { id: 4, title: "우주 비행", nickname: "하늘", ageBand: "10-12", likes: 71, hue: 260 },
-  { id: 5, title: "내 자전거", nickname: "유나", ageBand: "7-9", likes: 64, hue: 40 },
-  { id: 6, title: "바다 친구들", nickname: "서아", ageBand: "10-12", likes: 52, hue: 180 },
+const POPULAR_WORKS: Work[] = [
+  { id: "w1", title: "우리집 강아지", nickname: "토토", ageBand: "4-6",  isPublic: true, likeCount: 128, hue: 18 },
+  { id: "w2", title: "엄마랑 나",    nickname: "민서", ageBand: "7-9",  isPublic: true, likeCount: 96,  hue: 200 },
+  { id: "w3", title: "공룡 친구",    nickname: "지호", ageBand: "4-6",  isPublic: true, likeCount: 87,  hue: 140 },
+  { id: "w4", title: "우주 비행",    nickname: "하늘", ageBand: "10-12", isPublic: true, likeCount: 71,  hue: 260 },
+  { id: "w5", title: "내 자전거",    nickname: "유나", ageBand: "7-9",  isPublic: true, likeCount: 64,  hue: 40 },
+  { id: "w6", title: "바다 친구들",  nickname: "서아", ageBand: "10-12", isPublic: true, likeCount: 52,  hue: 180 },
 ];
 
-const FREE_TEMPLATES = [
-  { id: 1, title: "사자 가족", ageBand: "4-6", hue: 35 },
-  { id: 2, title: "기차 여행", ageBand: "7-9", hue: 215 },
-  { id: 3, title: "정원의 꽃", ageBand: "4-6", hue: 320 },
-  { id: 4, title: "별자리", ageBand: "10-12", hue: 250 },
+const FREE_TEMPLATES: Template[] = [
+  { id: "t1", title: "사자 가족",  ageBand: "4-6",   hue: 35 },
+  { id: "t2", title: "기차 여행",  ageBand: "7-9",   hue: 215 },
+  { id: "t3", title: "정원의 꽃",  ageBand: "4-6",   hue: 320 },
+  { id: "t4", title: "별자리",     ageBand: "10-12", hue: 250 },
 ];
 
 export default function Home() {
@@ -79,14 +80,13 @@ export default function Home() {
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {POPULAR_WORKS.map((w) => (
             <li key={w.id}>
-              <WorkThumb hue={w.hue} />
+              <WorkThumb hue={w.hue ?? 0} />
               <div className="mt-2 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-stone-900">{w.title}</p>
-                  <p className="truncate text-xs text-stone-500">{w.nickname} · {w.ageBand}세</p>
-                </div>
+                <p className="min-w-0 truncate text-sm font-semibold text-stone-900">
+                  {w.title}
+                </p>
                 <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
-                  ❤ {w.likes}
+                  ❤ {w.likeCount}
                 </span>
               </div>
             </li>
@@ -107,9 +107,11 @@ export default function Home() {
         <ul className="mt-4 -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
           {FREE_TEMPLATES.map((t) => (
             <li key={t.id} className="w-40 shrink-0 sm:w-48">
-              <PortraitThumb hue={t.hue} />
+              <PortraitThumb hue={t.hue ?? 0} />
               <p className="mt-2 truncate text-sm font-semibold text-stone-900">{t.title}</p>
-              <p className="text-xs text-stone-500">추천 {t.ageBand}세</p>
+              <p className="text-xs text-stone-500">
+                추천 {t.ageBand === "all" ? "모든 나이" : `${t.ageBand}세`}
+              </p>
             </li>
           ))}
         </ul>

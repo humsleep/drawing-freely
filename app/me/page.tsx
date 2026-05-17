@@ -4,29 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
 import { requiresPublishConfirm } from "@/lib/policy";
-
-type Work = {
-  id: string;
-  title: string;
-  description: string;
-  isPublic: boolean;
-  likeCount: number;
-  hue: number;
-};
+import type { Work } from "@/lib/types";
 
 const SEED_WORKS: Work[] = [
-  { id: "w1", title: "우리집 강아지", description: "토토가 제일 좋아하는 인형이랑 같이!", isPublic: true, likeCount: 12, hue: 18 },
-  { id: "w2", title: "비 오는 날", description: "", isPublic: false, likeCount: 0, hue: 210 },
-  { id: "w3", title: "우주 비행", description: "별나라까지 슝~", isPublic: false, likeCount: 0, hue: 260 },
+  { id: "w1", title: "우리집 강아지", ageBand: "7-9", nickname: "토토", isPublic: true,  likeCount: 12, hue: 18 },
+  { id: "w2", title: "비 오는 날",     ageBand: "7-9", nickname: "토토", isPublic: false, likeCount: 0,  hue: 210 },
+  { id: "w3", title: "우주 비행",      ageBand: "7-9", nickname: "토토", isPublic: false, likeCount: 0,  hue: 260 },
 ];
 
 export default function MyWorksPage() {
   const [works, setWorks] = useState<Work[]>(SEED_WORKS);
   const [toast, setToast] = useState<string>("");
-
-  function update(id: string, patch: Partial<Work>) {
-    setWorks((prev) => prev.map((w) => (w.id === id ? { ...w, ...patch } : w)));
-  }
 
   function onTogglePublic(w: Work) {
     const next = !w.isPublic;
@@ -34,27 +22,8 @@ export default function MyWorksPage() {
       const ok = window.confirm("다른 사람들도 이 작품을 볼 수 있어요. 공개할까요?");
       if (!ok) return;
     }
-    update(w.id, { isPublic: next });
-    showToast(next ? "갤러리에 공개됐어요." : "이제 나만 볼 수 있어요.");
-  }
-
-  async function onShare(w: Work) {
-    const url = `${window.location.origin}/work/${w.id}`;
-    const text = w.description ? `${w.title} — ${w.description}` : w.title;
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title: w.title, text, url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      showToast("주소를 복사했어요.");
-    } catch {
-      // 사용자가 공유 취소 — 조용히 무시
-    }
-  }
-
-  function showToast(msg: string) {
-    setToast(msg);
+    setWorks((prev) => prev.map((it) => (it.id === w.id ? { ...it, isPublic: next } : it)));
+    setToast(next ? "갤러리에 공개됐어요." : "이제 나만 볼 수 있어요.");
     window.setTimeout(() => setToast(""), 1800);
   }
 
@@ -102,12 +71,7 @@ export default function MyWorksPage() {
           <ul className="flex flex-col gap-4">
             {works.map((w) => (
               <li key={w.id}>
-                <WorkCard
-                  work={w}
-                  onTogglePublic={() => onTogglePublic(w)}
-                  onShare={() => onShare(w)}
-                  onChangeDescription={(d) => update(w.id, { description: d })}
-                />
+                <WorkCard work={w} onTogglePublic={() => onTogglePublic(w)} />
               </li>
             ))}
           </ul>
@@ -129,21 +93,11 @@ export default function MyWorksPage() {
   );
 }
 
-function WorkCard({
-  work,
-  onTogglePublic,
-  onShare,
-  onChangeDescription,
-}: {
-  work: Work;
-  onTogglePublic: () => void;
-  onShare: () => void;
-  onChangeDescription: (d: string) => void;
-}) {
+function WorkCard({ work, onTogglePublic }: { work: Work; onTogglePublic: () => void }) {
   return (
     <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
       <div className="flex gap-3 p-3">
-        <Thumb hue={work.hue} />
+        <Thumb hue={work.hue ?? 0} />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-start justify-between gap-2">
             <h2 className="truncate text-base font-bold text-stone-900">{work.title}</h2>
@@ -155,18 +109,6 @@ function WorkCard({
             </span>
           </div>
 
-          <label className="mt-2 block">
-            <span className="sr-only">작품 설명 한 줄</span>
-            <input
-              type="text"
-              value={work.description}
-              onChange={(e) => onChangeDescription(e.target.value)}
-              placeholder="작품 설명 한 줄 (선택)"
-              maxLength={40}
-              className="w-full rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-800 placeholder:text-stone-400 focus:bg-white focus:outline-2 focus:outline-stone-300"
-            />
-          </label>
-
           {work.isPublic && (
             <p className="mt-2 text-xs text-emerald-700">
               갤러리에 보이는 중 · 좋아요가 쌓이면 인기 작품에 올라갈 수 있어요
@@ -175,20 +117,8 @@ function WorkCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-stone-100 px-3 py-2">
+      <div className="flex items-center justify-end border-t border-stone-100 px-3 py-2">
         <PublicToggle isPublic={work.isPublic} onToggle={onTogglePublic} />
-        <button
-          type="button"
-          onClick={onShare}
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100"
-        >
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7" />
-            <path d="M16 6l-4-4-4 4" />
-            <path d="M12 2v14" />
-          </svg>
-          공유
-        </button>
       </div>
     </article>
   );
