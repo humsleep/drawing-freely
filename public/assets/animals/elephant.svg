@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 큰 귀 -->
+  <path d="M58 90 Q28 88 30 130 Q38 148 60 138 Q62 122 60 105" fill="white"/>
+  <path d="M142 90 Q172 88 170 130 Q162 148 140 138 Q138 122 140 105" fill="white"/>
+  <!-- 머리 -->
+  <ellipse cx="100" cy="105" rx="52" ry="48" fill="white"/>
+  <!-- 코(트렁크) 늘어진 곡선 -->
+  <path d="M88 130 Q78 155 88 172 Q98 180 112 174 Q120 170 115 162 Q108 158 105 162" fill="white"/>
+  <!-- 코 끝 콧구멍 -->
+  <circle cx="105" cy="167" r="2" fill="#1f1b16"/>
+  <!-- 눈 -->
+  <circle cx="80" cy="98" r="5" fill="#1f1b16"/>
+  <circle cx="120" cy="98" r="5" fill="#1f1b16"/>
+  <circle cx="82" cy="96" r="1.5" fill="white"/>
+  <circle cx="122" cy="96" r="1.5" fill="white"/>
+  <!-- 작은 상아 -->
+  <path d="M82 138 L80 148"/>
+  <path d="M118 138 L120 148"/>
+  <!-- 다리 둘 -->
+  <path d="M65 150 L62 178 L78 178 L80 152"/>
+  <path d="M120 152 L122 178 L138 178 L135 150"/>
+</svg>

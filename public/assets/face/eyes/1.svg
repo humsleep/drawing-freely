@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 큰 둥근 눈 + 하이라이트 (귀여운 만화풍) -->
+  <ellipse cx="78" cy="93" rx="10" ry="12" fill="white"/>
+  <ellipse cx="78" cy="95" rx="6" ry="7" fill="#1f1b16"/>
+  <circle cx="80" cy="92" r="2" fill="white"/>
+  <ellipse cx="122" cy="93" rx="10" ry="12" fill="white"/>
+  <ellipse cx="122" cy="95" rx="6" ry="7" fill="#1f1b16"/>
+  <circle cx="124" cy="92" r="2" fill="white"/>
+</svg>

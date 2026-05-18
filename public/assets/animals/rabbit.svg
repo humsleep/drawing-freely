@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 긴 귀 -->
+  <path d="M75 30 Q68 60 75 110 Q82 115 88 110 Q92 60 85 30 Q80 25 75 30 Z" fill="white"/>
+  <path d="M125 30 Q118 60 125 110 Q132 115 138 110 Q142 60 135 30 Q130 25 125 30 Z" fill="white"/>
+  <!-- 귀 안쪽 곡선 -->
+  <path d="M80 50 Q82 80 82 100"/>
+  <path d="M120 50 Q118 80 118 100"/>
+  <!-- 머리 -->
+  <ellipse cx="100" cy="115" rx="42" ry="38" fill="white"/>
+  <!-- 몸 (밑에 살짝) -->
+  <ellipse cx="100" cy="170" rx="48" ry="22" fill="white"/>
+  <!-- 눈 -->
+  <circle cx="86" cy="110" r="5" fill="#1f1b16"/>
+  <circle cx="114" cy="110" r="5" fill="#1f1b16"/>
+  <circle cx="87" cy="108" r="1.5" fill="white"/>
+  <circle cx="115" cy="108" r="1.5" fill="white"/>
+  <!-- 핑크 코 -->
+  <path d="M96 122 L100 127 L104 122 Z" fill="#1f1b16"/>
+  <!-- 입 (Y자) -->
+  <path d="M100 127 L100 134"/>
+  <path d="M100 134 Q92 140 88 137"/>
+  <path d="M100 134 Q108 140 112 137"/>
+  <!-- 수염 -->
+  <line x1="80" y1="128" x2="62" y2="125"/>
+  <line x1="80" y1="135" x2="62" y2="138"/>
+  <line x1="120" y1="128" x2="138" y2="125"/>
+  <line x1="120" y1="135" x2="138" y2="138"/>
+</svg>
