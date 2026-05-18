@@ -1,1 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M55 70 Q60 35 100 30 Q140 35 145 70 Q140 50 100 50 Q60 50 55 70 Z" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 짧은 컬리 머리 (구름 같은 위 형태) -->
+  <path d="M55 70
+           Q50 50 65 45
+           Q70 35 85 38
+           Q92 28 105 32
+           Q120 30 130 40
+           Q145 38 150 55
+           Q160 65 152 75
+           Q150 60 138 60
+           Q135 48 122 52
+           Q115 42 100 48
+           Q85 42 78 52
+           Q65 48 62 60
+           Q52 60 55 70 Z" fill="white"/>
+</svg>

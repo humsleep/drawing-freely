@@ -1,8 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <circle cx="100" cy="100" r="65" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <circle cx="100" cy="100" r="45" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <circle cx="85" cy="95" r="3" fill="#1f1b16"/>
-  <circle cx="115" cy="95" r="3" fill="#1f1b16"/>
-  <path d="M95 115 Q100 122 105 115" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <path d="M85 130 Q100 140 115 130" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#1f1b16" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 갈기 (외곽) -->
+  <path d="M100 30 Q60 30 45 55 Q30 75 35 100 Q25 110 30 125 Q35 140 50 145 Q45 155 55 160 Q65 165 75 162 Q85 175 100 175 Q115 175 125 162 Q135 165 145 160 Q155 155 150 145 Q165 140 170 125 Q175 110 165 100 Q170 75 155 55 Q140 30 100 30 Z" fill="white"/>
+  <!-- 얼굴 -->
+  <ellipse cx="100" cy="108" rx="38" ry="35" fill="white"/>
+  <!-- 귀 -->
+  <ellipse cx="68" cy="78" rx="8" ry="10" transform="rotate(-20 68 78)" fill="white"/>
+  <ellipse cx="132" cy="78" rx="8" ry="10" transform="rotate(20 132 78)" fill="white"/>
+  <!-- 눈 -->
+  <circle cx="85" cy="100" r="4" fill="#1f1b16"/>
+  <circle cx="115" cy="100" r="4" fill="#1f1b16"/>
+  <circle cx="86" cy="98" r="1.2" fill="white"/>
+  <circle cx="116" cy="98" r="1.2" fill="white"/>
+  <!-- 코 -->
+  <path d="M95 115 L100 122 L105 115 Z" fill="#1f1b16"/>
+  <!-- 입 -->
+  <path d="M100 122 L100 130"/>
+  <path d="M88 132 Q95 138 100 132 Q105 138 112 132"/>
+  <!-- 수염 -->
+  <line x1="70" y1="125" x2="55" y2="122"/>
+  <line x1="70" y1="130" x2="52" y2="132"/>
+  <line x1="130" y1="125" x2="145" y2="122"/>
+  <line x1="130" y1="130" x2="148" y2="132"/>
 </svg>
