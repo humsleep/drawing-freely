@@ -1,4 +1,4 @@
-import ColorCanvasLoader from "./ColorCanvasLoader";
+import ColorCanvas from "./ColorCanvas";
 
 /**
  * 색칠 화면 — `[id]` 포맷:
@@ -15,5 +15,5 @@ export default async function ColorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ColorCanvasLoader id={id} />;
+  return <ColorCanvas id={id} />;
 }

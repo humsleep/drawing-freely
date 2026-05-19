@@ -2,37 +2,33 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Stage,
-  Layer,
-  Image as KonvaImage,
-  Line as KonvaLine,
-} from "react-konva";
-import type { KonvaEventObject } from "konva/lib/Node";
 import { TabBar } from "@/app/_components/TabBar";
 import { ANIMALS, animalSrc, type AnimalId } from "@/lib/assets";
 
 /**
- * 색칠 캔버스 — 최소 골조 (#2 단계).
+ * 색칠 캔버스 — 두 캔버스 스택.
  *
- * 레이어 순서 (아래 → 위):
- *   1. 색칠 레이어 — 사용자의 선들을 그림 (현재: 빨강·굵기 12 고정)
- *   2. 선화 레이어 — 도안 SVG. fill="none"이라 색이 비쳐 보인다.
+ *   하단(paint):  사용자가 손가락으로 그림. pointer 이벤트 받음. 초기 투명.
+ *   상단(line):   도안 SVG가 그려진 캔버스. pointer-events: none. 항상 위에 보임.
+ *
+ * 페인트 통(flood fill)은 paint+line 을 임시 캔버스에 합성한 뒤 q-floodfill 돌리고
+ * 결과를 paint 캔버스에 다시 그린다. 선은 그대로 보존된다(상단 캔버스 무변경).
  *
  * 향후 단계:
- *   #3 — 브러시(perfect-freehand) + 지우개 + 굵기 슬라이더
- *   #4 — 페인트 통 (q-floodfill)
  *   #5 — 크레용·마커·스프레이·스탬프
- *   #6 — 색 팔레트
  *   #7 — undo/redo
  *   #8 — 받기·내 작품 저장·공개 토글
  */
 
-const STAGE_W = 400;
-const STAGE_H = 500;
-const BRUSH_WIDTH = 12;
+type Tool = "brush" | "bucket" | "eraser";
+type Width = 6 | 12 | 24;
 
-/** 어린이용 12색 팔레트 — Tailwind 500 톤 기준, 채도 높고 흰 배경 위에서 잘 보임. */
+const CANVAS_W = 800;
+const CANVAS_H = 1000;
+const LINE_ART_SIZE = 640;
+const LINE_ART_X = (CANVAS_W - LINE_ART_SIZE) / 2;
+const LINE_ART_Y = (CANVAS_H - LINE_ART_SIZE) / 2;
+
 const COLORS = [
   { label: "빨강", hex: "#ef4444" },
   { label: "주황", hex: "#f97316" },
@@ -48,67 +44,147 @@ const COLORS = [
   { label: "검정", hex: "#1f1b16" },
 ] as const;
 
-type Stroke = { points: number[]; color: string; width: number };
+const WIDTHS: { value: Width; label: string }[] = [
+  { value: 6, label: "얇게" },
+  { value: 12, label: "보통" },
+  { value: 24, label: "굵게" },
+];
 
 function resolveLineArt(id: string): string | null {
   if (id.startsWith("animal-")) {
     const name = id.slice("animal-".length) as AnimalId;
-    if ((ANIMALS as readonly string[]).includes(name)) {
-      return animalSrc(name);
-    }
+    if ((ANIMALS as readonly string[]).includes(name)) return animalSrc(name);
   }
   return null;
 }
 
 export default function ColorCanvas({ id }: { id: string }) {
   const lineArtSrc = resolveLineArt(id);
-  const [image, setImage] = useState<HTMLImageElement | undefined>();
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [color, setColor] = useState<string>(COLORS[0].hex);
-  const drawing = useRef(false);
 
-  // 선화 이미지 로드
+  const paintRef = useRef<HTMLCanvasElement>(null);
+  const lineRef = useRef<HTMLCanvasElement>(null);
+
+  const [tool, setTool] = useState<Tool>("brush");
+  const [color, setColor] = useState<string>(COLORS[0].hex);
+  const [width, setWidth] = useState<Width>(12);
+
+  const drawing = useRef(false);
+  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+
+  // 선화 캔버스에 SVG 베이크
   useEffect(() => {
     if (!lineArtSrc) return;
+    const canvas = lineRef.current;
+    if (!canvas) return;
     const img = new window.Image();
     img.src = lineArtSrc;
-    const onLoad = () => setImage(img);
-    img.addEventListener("load", onLoad);
-    return () => img.removeEventListener("load", onLoad);
+    img.onload = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, LINE_ART_X, LINE_ART_Y, LINE_ART_SIZE, LINE_ART_SIZE);
+    };
   }, [lineArtSrc]);
 
-  function startStroke(e: KonvaEventObject<MouseEvent | TouchEvent>) {
-    const pos = e.target.getStage()?.getPointerPosition();
+  function getPos(e: React.PointerEvent): { x: number; y: number } | null {
+    const canvas = paintRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (!paintRef.current) return;
+    paintRef.current.setPointerCapture(e.pointerId);
+    const pos = getPos(e);
     if (!pos) return;
+
+    if (tool === "bucket") {
+      void doBucketFill(pos);
+      return;
+    }
+
+    const ctx = paintRef.current.getContext("2d");
+    if (!ctx) return;
+
     drawing.current = true;
-    setStrokes((prev) => [
-      ...prev,
-      { points: [pos.x, pos.y], color, width: BRUSH_WIDTH },
-    ]);
+    lastPoint.current = pos;
+
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if (tool === "eraser") {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.fillStyle = "rgba(0,0,0,1)";
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+    }
+    // 한 번만 탭해도 점이 찍히도록
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, width / 2, 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  function extendStroke(e: KonvaEventObject<MouseEvent | TouchEvent>) {
+  function onPointerMove(e: React.PointerEvent) {
     if (!drawing.current) return;
-    // 모바일에서 손가락 드래그 시 스크롤 차단
-    if (e.evt && "preventDefault" in e.evt) e.evt.preventDefault();
-    const pos = e.target.getStage()?.getPointerPosition();
-    if (!pos) return;
-    setStrokes((prev) => {
-      const last = prev[prev.length - 1];
-      if (!last) return prev;
-      return [
-        ...prev.slice(0, -1),
-        { ...last, points: [...last.points, pos.x, pos.y] },
-      ];
-    });
+    const pos = getPos(e);
+    if (!pos || !lastPoint.current) return;
+    const ctx = paintRef.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastPoint.current = pos;
   }
 
-  function endStroke() {
+  function onPointerUp() {
     drawing.current = false;
+    lastPoint.current = null;
   }
 
-  function clear() {
-    setStrokes([]);
+  async function doBucketFill(pos: { x: number; y: number }) {
+    const paint = paintRef.current;
+    const line = lineRef.current;
+    if (!paint || !line) return;
+
+    // 임시 캔버스: 흰 바탕 + 페인트 + 선화 합성 (선이 flood fill의 벽 역할)
+    const temp = document.createElement("canvas");
+    temp.width = paint.width;
+    temp.height = paint.height;
+    const tctx = temp.getContext("2d");
+    if (!tctx) return;
+    tctx.fillStyle = "#ffffff";
+    tctx.fillRect(0, 0, temp.width, temp.height);
+    tctx.drawImage(paint, 0, 0);
+    tctx.drawImage(line, 0, 0);
+
+    const { default: FloodFill } = await import("q-floodfill");
+    const imgData = tctx.getImageData(0, 0, temp.width, temp.height);
+    const fill = new FloodFill(imgData);
+    // tolerance 30: 안티앨리어스된 선 가장자리도 자연스럽게 덮음
+    fill.fill(color, Math.floor(pos.x), Math.floor(pos.y), 30);
+    tctx.putImageData(fill.imageData, 0, 0);
+
+    // 결과를 페인트 캔버스로 (선은 상단 캔버스에서 그대로 보임)
+    const pctx = paint.getContext("2d");
+    if (!pctx) return;
+    pctx.globalCompositeOperation = "source-over";
+    pctx.drawImage(temp, 0, 0);
+  }
+
+  function clearAll() {
+    const ctx = paintRef.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   }
 
   return (
@@ -117,86 +193,111 @@ export default function ColorCanvas({ id }: { id: string }) {
         <Link href="/create" className="text-sm font-medium text-stone-500">
           ← 만들기
         </Link>
-        <button
-          type="button"
-          onClick={clear}
-          disabled={strokes.length === 0}
-          className="rounded-full bg-stone-100 px-4 py-1.5 text-sm font-medium text-stone-700 disabled:text-stone-400"
-        >
-          전부 지우기
-        </button>
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block size-6 rounded-full ring-2 ring-stone-200"
+            style={{ background: color }}
+            aria-label="선택된 색"
+          />
+          <button
+            type="button"
+            onClick={clearAll}
+            className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-700"
+          >
+            전부 지우기
+          </button>
+        </div>
       </header>
 
-      <section className="flex items-center justify-between px-5 pt-4">
-        <h1 className="text-lg font-extrabold text-stone-900">색칠하기</h1>
-        {/* 현재 색 미리보기 — 스크롤로 팔레트가 안 보일 때 확인용 */}
-        <span
-          className="inline-block size-6 rounded-full ring-2 ring-stone-200"
-          style={{ background: color }}
-          aria-label={`선택된 색`}
-        />
-      </section>
       {!lineArtSrc && (
-        <p className="px-5 pt-1 text-xs text-rose-600">
+        <p className="px-5 pt-3 text-xs text-rose-600">
           도안을 찾을 수 없어요.{" "}
-          <Link href="/create" className="underline">새로 만들기</Link>
+          <Link href="/create" className="underline">
+            새로 만들기
+          </Link>
         </p>
       )}
 
-      <section className="px-5 pt-4">
+      <section className="px-5 pt-3">
         <div
-          className="mx-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200"
-          style={{ touchAction: "none" }}
+          className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200"
+          style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}` }}
         >
-          <Stage
-            width={STAGE_W}
-            height={STAGE_H}
-            onMouseDown={startStroke}
-            onMouseMove={extendStroke}
-            onMouseUp={endStroke}
-            onMouseLeave={endStroke}
-            onTouchStart={startStroke}
-            onTouchMove={extendStroke}
-            onTouchEnd={endStroke}
-            style={{
-              width: "100%",
-              height: "auto",
-              aspectRatio: `${STAGE_W} / ${STAGE_H}`,
-            }}
-          >
-            {/* 색칠 레이어 (아래) */}
-            <Layer listening={false}>
-              {strokes.map((s, i) => (
-                <KonvaLine
-                  key={i}
-                  points={s.points}
-                  stroke={s.color}
-                  strokeWidth={s.width}
-                  tension={0.4}
-                  lineCap="round"
-                  lineJoin="round"
-                  globalCompositeOperation="source-over"
-                />
-              ))}
-            </Layer>
-            {/* 선화 레이어 (위) — fill="none" 이라 색이 비쳐 보인다 */}
-            <Layer listening={false}>
-              {image && (
-                <KonvaImage
-                  image={image}
-                  x={STAGE_W / 2 - 160}
-                  y={STAGE_H / 2 - 160}
-                  width={320}
-                  height={320}
-                />
-              )}
-            </Layer>
-          </Stage>
+          <canvas
+            ref={paintRef}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            className="absolute inset-0 h-full w-full"
+            style={{ touchAction: "none" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          />
+          <canvas
+            ref={lineRef}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+          />
         </div>
       </section>
 
-      {/* 색 팔레트 — 가로 스크롤, 선택된 색은 검정 링 */}
-      <section className="px-5 pt-4">
+      {/* 도구 선택 */}
+      <section className="px-5 pt-3">
+        <div className="grid grid-cols-3 gap-2">
+          <ToolButton
+            active={tool === "brush"}
+            onClick={() => setTool("brush")}
+            label="브러시"
+            emoji="🖌️"
+          />
+          <ToolButton
+            active={tool === "bucket"}
+            onClick={() => setTool("bucket")}
+            label="페인트통"
+            emoji="🪣"
+          />
+          <ToolButton
+            active={tool === "eraser"}
+            onClick={() => setTool("eraser")}
+            label="지우개"
+            emoji="🧽"
+          />
+        </div>
+      </section>
+
+      {/* 굵기 — 브러시·지우개일 때만 */}
+      {tool !== "bucket" && (
+        <section className="px-5 pt-3">
+          <div className="grid grid-cols-3 gap-2">
+            {WIDTHS.map((w) => (
+              <button
+                key={w.value}
+                type="button"
+                onClick={() => setWidth(w.value)}
+                aria-pressed={width === w.value}
+                className={
+                  "flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold transition-colors " +
+                  (width === w.value
+                    ? "bg-stone-900 text-white"
+                    : "bg-white text-stone-700 ring-1 ring-stone-200")
+                }
+              >
+                <span
+                  className="inline-block rounded-full bg-current"
+                  style={{ width: w.value / 1.5, height: w.value / 1.5 }}
+                  aria-hidden
+                />
+                {w.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 색 팔레트 */}
+      <section className="px-5 pt-3">
         <h2 className="sr-only">색 고르기</h2>
         <ul
           className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
@@ -225,12 +326,40 @@ export default function ColorCanvas({ id }: { id: string }) {
             );
           })}
         </ul>
-        <p className="mt-3 text-center text-xs text-stone-500">
-          다음 단계: 지우개·페인트 통·굵기 슬라이더
-        </p>
       </section>
 
       <TabBar />
     </>
+  );
+}
+
+function ToolButton({
+  active,
+  onClick,
+  label,
+  emoji,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  emoji: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={
+        "flex flex-col items-center justify-center gap-0.5 rounded-2xl py-2.5 text-xs font-semibold transition-colors " +
+        (active
+          ? "bg-stone-900 text-white"
+          : "bg-white text-stone-700 ring-1 ring-stone-200")
+      }
+    >
+      <span className="text-lg" aria-hidden>
+        {emoji}
+      </span>
+      {label}
+    </button>
   );
 }
