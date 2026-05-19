@@ -9,10 +9,14 @@ import {
   animalSrc,
   type AnimalId,
 } from "@/lib/assets";
-import { makeStoredId, saveStoredWork } from "@/lib/storage";
+import {
+  loadPendingColor,
+  makeStoredId,
+  saveStoredWork,
+} from "@/lib/storage";
 import type { Work } from "@/lib/types";
 
-type Tool = "brush" | "bucket" | "eraser";
+type Tool = "brush" | "crayon" | "marker" | "spray" | "stamp" | "bucket" | "eraser";
 type Width = 6 | 12 | 24;
 
 const CANVAS_W = 800;
@@ -22,6 +26,9 @@ const LINE_ART_X = (CANVAS_W - LINE_ART_SIZE) / 2;
 const LINE_ART_Y = (CANVAS_H - LINE_ART_SIZE) / 2;
 
 const MAX_HISTORY = 10;
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.5;
 
 const COLORS = [
   { label: "빨강", hex: "#ef4444" },
@@ -44,6 +51,16 @@ const WIDTHS: { value: Width; label: string }[] = [
   { value: 24, label: "굵게" },
 ];
 
+const TOOLS: { id: Tool; label: string; emoji: string }[] = [
+  { id: "brush", label: "브러시", emoji: "🖌️" },
+  { id: "crayon", label: "크레용", emoji: "🖍️" },
+  { id: "marker", label: "마커", emoji: "✏️" },
+  { id: "spray", label: "스프레이", emoji: "💨" },
+  { id: "stamp", label: "스탬프", emoji: "⭐" },
+  { id: "bucket", label: "페인트통", emoji: "🪣" },
+  { id: "eraser", label: "지우개", emoji: "🧽" },
+];
+
 function resolveLineArt(id: string): string | null {
   if (id.startsWith("animal-")) {
     const name = id.slice("animal-".length) as AnimalId;
@@ -52,7 +69,8 @@ function resolveLineArt(id: string): string | null {
   return null;
 }
 
-function defaultTitle(id: string): string {
+function defaultTitle(id: string, isLocal: boolean): string {
+  if (isLocal) return "내가 만든 작품";
   if (id.startsWith("animal-")) {
     const name = id.slice("animal-".length) as AnimalId;
     const label = ANIMAL_LABEL[name];
@@ -63,6 +81,9 @@ function defaultTitle(id: string): string {
 
 export default function ColorCanvas({ id }: { id: string }) {
   const lineArtSrc = resolveLineArt(id);
+  // 빌더 결과(localStorage `pendingColor`)에서 가져온 SVG/PNG 마크업
+  const [pendingSrc, setPendingSrc] = useState<string | null>(null);
+  const [pendingReady, setPendingReady] = useState(id !== "local");
 
   const paintRef = useRef<HTMLCanvasElement>(null);
   const lineRef = useRef<HTMLCanvasElement>(null);
@@ -71,14 +92,18 @@ export default function ColorCanvas({ id }: { id: string }) {
   const [color, setColor] = useState<string>(COLORS[0].hex);
   const [width, setWidth] = useState<Width>(12);
   const [toast, setToast] = useState<string>("");
+  const [zoom, setZoom] = useState<number>(1);
+
+  // 멀티터치 관리 — 두 손가락 핀치 시 그리기 중단
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchInitial = useRef<{ dist: number; zoom: number } | null>(null);
 
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
-  // ---- 히스토리 (ImageData 스냅샷) ----
+  // 히스토리
   const historyRef = useRef<ImageData[]>([]);
   const idxRef = useRef<number>(-1);
-  // 버튼 disabled 상태를 갱신하기 위한 렌더 트리거 (변수는 안 쓰고 setter만 호출)
   const [, setHistoryVer] = useState(0);
   const canUndo = idxRef.current > 0;
   const canRedo = idxRef.current < historyRef.current.length - 1;
@@ -87,7 +112,6 @@ export default function ColorCanvas({ id }: { id: string }) {
     const ctx = paintRef.current?.getContext("2d");
     if (!ctx) return;
     const data = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
-    // redo 브랜치 잘라내고 push
     historyRef.current = historyRef.current.slice(0, idxRef.current + 1);
     historyRef.current.push(data);
     if (historyRef.current.length > MAX_HISTORY) historyRef.current.shift();
@@ -111,31 +135,48 @@ export default function ColorCanvas({ id }: { id: string }) {
     setHistoryVer((v) => v + 1);
   }
 
-  // 선화 캔버스에 SVG 베이크 + 초기 페인트 스냅샷
+  // 1) `local` id면 pendingColor 로드, 2) 선화 캔버스에 베이크
   useEffect(() => {
-    if (!lineArtSrc) return;
+    if (id === "local") {
+      const p = loadPendingColor();
+      if (p) {
+        if (p.format === "svg") {
+          const blob = new Blob([p.source], { type: "image/svg+xml" });
+          setPendingSrc(URL.createObjectURL(blob));
+        } else {
+          setPendingSrc(p.source);
+        }
+      }
+      setPendingReady(true);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const src = id === "local" ? pendingSrc : lineArtSrc;
+    if (!src) return;
     const lineCanvas = lineRef.current;
     const paint = paintRef.current;
     if (!lineCanvas || !paint) return;
 
     const img = new window.Image();
-    img.src = lineArtSrc;
+    img.src = src;
     img.onload = () => {
       const ctx = lineCanvas.getContext("2d");
       if (!ctx) return;
       ctx.clearRect(0, 0, lineCanvas.width, lineCanvas.height);
       ctx.drawImage(img, LINE_ART_X, LINE_ART_Y, LINE_ART_SIZE, LINE_ART_SIZE);
 
-      // 빈 페인트 캔버스로 히스토리 초기화
       const pctx = paint.getContext("2d");
       if (pctx) {
+        // 페인트 캔버스 초기화 + 히스토리 시작점
+        pctx.clearRect(0, 0, paint.width, paint.height);
         const blank = pctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
         historyRef.current = [blank];
         idxRef.current = 0;
         setHistoryVer((v) => v + 1);
       }
     };
-  }, [lineArtSrc]);
+  }, [lineArtSrc, pendingSrc, id]);
 
   function getPos(e: React.PointerEvent): { x: number; y: number } | null {
     const canvas = paintRef.current;
@@ -149,8 +190,78 @@ export default function ColorCanvas({ id }: { id: string }) {
     };
   }
 
+  function applyToolStyle(ctx: CanvasRenderingContext2D) {
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = width;
+    ctx.globalAlpha = 1;
+
+    if (tool === "eraser") {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.fillStyle = "rgba(0,0,0,1)";
+    } else if (tool === "crayon") {
+      // 크레용 — 반투명, 겹치면 진해짐
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+    } else if (tool === "marker") {
+      // 마커 — 살짝 진한 단단한 선
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = Math.max(3, width - 2);
+    } else {
+      // brush
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+    }
+  }
+
+  function drawSpray(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    const radius = width * 2;
+    const count = 12;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = color;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.random() * radius;
+      const px = x + Math.cos(angle) * r;
+      const py = y + Math.sin(angle) * r;
+      ctx.beginPath();
+      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawStamp(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.font = `${width * 4}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⭐", x, y);
+  }
+
   function onPointerDown(e: React.PointerEvent) {
     if (!paintRef.current) return;
+
+    // 멀티터치 핀치 시작
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.current.size >= 2) {
+      drawing.current = false;
+      lastPoint.current = null;
+      const pts = Array.from(activePointers.current.values());
+      const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      pinchInitial.current = { dist, zoom };
+      return;
+    }
+
     paintRef.current.setPointerCapture(e.pointerId);
     const pos = getPos(e);
     if (!pos) return;
@@ -159,47 +270,76 @@ export default function ColorCanvas({ id }: { id: string }) {
       void doBucketFill(pos);
       return;
     }
+    if (tool === "stamp") {
+      const ctx = paintRef.current.getContext("2d");
+      if (!ctx) return;
+      drawStamp(ctx, pos.x, pos.y);
+      snapshot();
+      return;
+    }
+    if (tool === "spray") {
+      const ctx = paintRef.current.getContext("2d");
+      if (!ctx) return;
+      drawSpray(ctx, pos.x, pos.y);
+      drawing.current = true;
+      lastPoint.current = pos;
+      return;
+    }
 
     const ctx = paintRef.current.getContext("2d");
     if (!ctx) return;
-
+    applyToolStyle(ctx);
     drawing.current = true;
     lastPoint.current = pos;
-
-    ctx.lineWidth = width;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    if (tool === "eraser") {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.strokeStyle = "rgba(0,0,0,1)";
-      ctx.fillStyle = "rgba(0,0,0,1)";
-    } else {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-    }
+    // 한 번만 탭해도 점 찍힘
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, width / 2, 0, Math.PI * 2);
     ctx.fill();
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    // 핀치 줌
+    if (activePointers.current.size >= 2 && pinchInitial.current) {
+      const pts = Array.from(activePointers.current.values());
+      const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      const ratio = dist / pinchInitial.current.dist;
+      const next = Math.min(
+        ZOOM_MAX,
+        Math.max(ZOOM_MIN, pinchInitial.current.zoom * ratio),
+      );
+      setZoom(next);
+      return;
+    }
     if (!drawing.current) return;
     const pos = getPos(e);
     if (!pos || !lastPoint.current) return;
     const ctx = paintRef.current?.getContext("2d");
     if (!ctx) return;
-    ctx.beginPath();
-    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
+
+    if (tool === "spray") {
+      drawSpray(ctx, pos.x, pos.y);
+    } else {
+      applyToolStyle(ctx);
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
     lastPoint.current = pos;
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) pinchInitial.current = null;
+
     if (drawing.current) {
       drawing.current = false;
       lastPoint.current = null;
+      const ctx = paintRef.current?.getContext("2d");
+      if (ctx) ctx.globalAlpha = 1;
       snapshot();
     }
   }
@@ -228,6 +368,7 @@ export default function ColorCanvas({ id }: { id: string }) {
     const pctx = paint.getContext("2d");
     if (!pctx) return;
     pctx.globalCompositeOperation = "source-over";
+    pctx.globalAlpha = 1;
     pctx.drawImage(temp, 0, 0);
     snapshot();
   }
@@ -278,19 +419,30 @@ export default function ColorCanvas({ id }: { id: string }) {
     const temp = composeImage();
     if (!temp) return;
     const pngData = temp.toDataURL("image/png");
+    const isLocal = id === "local";
     const work: Work = {
       id: makeStoredId(),
-      title: defaultTitle(id),
+      title: defaultTitle(id, isLocal),
       ageBand: "7-9",
       nickname: "토토",
       isPublic: false,
       likeCount: 0,
       pngData,
       createdAt: Date.now(),
+      sourceId: isLocal ? undefined : id,
     };
     saveStoredWork(work);
     showToast("내 작품에 저장됐어요");
   }
+
+  function zoomIn() {
+    setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
+  }
+  function zoomOut() {
+    setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
+  }
+
+  const hasLineArt = id === "local" ? pendingReady && !!pendingSrc : !!lineArtSrc;
 
   return (
     <>
@@ -302,7 +454,7 @@ export default function ColorCanvas({ id }: { id: string }) {
           <button
             type="button"
             onClick={onDownload}
-            disabled={!lineArtSrc}
+            disabled={!hasLineArt}
             className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-stone-800 ring-1 ring-stone-200 disabled:text-stone-400"
           >
             받기
@@ -310,7 +462,7 @@ export default function ColorCanvas({ id }: { id: string }) {
           <button
             type="button"
             onClick={onSave}
-            disabled={!lineArtSrc}
+            disabled={!hasLineArt}
             className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
           >
             저장
@@ -318,9 +470,17 @@ export default function ColorCanvas({ id }: { id: string }) {
         </div>
       </header>
 
-      {!lineArtSrc && (
+      {!hasLineArt && id !== "local" && (
         <p className="px-5 pt-3 text-xs text-rose-600">
           도안을 찾을 수 없어요.{" "}
+          <Link href="/templates" className="underline">
+            도안 골라보기
+          </Link>
+        </p>
+      )}
+      {id === "local" && pendingReady && !pendingSrc && (
+        <p className="px-5 pt-3 text-xs text-rose-600">
+          색칠할 그림이 없어요.{" "}
           <Link href="/create" className="underline">
             새로 만들기
           </Link>
@@ -329,50 +489,74 @@ export default function ColorCanvas({ id }: { id: string }) {
 
       <section className="px-5 pt-3">
         <div
-          className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200"
-          style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}` }}
+          className="mx-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200"
+          style={{
+            aspectRatio: `${CANVAS_W} / ${CANVAS_H}`,
+            position: "relative",
+          }}
         >
-          <canvas
-            ref={paintRef}
-            width={CANVAS_W}
-            height={CANVAS_H}
-            className="absolute inset-0 h-full w-full"
-            style={{ touchAction: "none" }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          />
-          <canvas
-            ref={lineRef}
-            width={CANVAS_W}
-            height={CANVAS_H}
-            className="pointer-events-none absolute inset-0 h-full w-full"
-          />
+          <div
+            className="absolute inset-0"
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "center center",
+              transition: "transform 0.15s",
+            }}
+          >
+            <canvas
+              ref={paintRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              className="absolute inset-0 h-full w-full"
+              style={{ touchAction: "none" }}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+            />
+            <canvas
+              ref={lineRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              className="pointer-events-none absolute inset-0 h-full w-full"
+            />
+          </div>
+          {/* 줌 컨트롤 — 우상단 */}
+          <div className="absolute right-2 top-2 flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={zoomIn}
+              disabled={zoom >= ZOOM_MAX}
+              aria-label="확대"
+              className="grid size-8 place-items-center rounded-full bg-white/95 text-base font-bold text-stone-700 shadow ring-1 ring-stone-200 disabled:text-stone-300"
+            >
+              ＋
+            </button>
+            <button
+              type="button"
+              onClick={zoomOut}
+              disabled={zoom <= ZOOM_MIN}
+              aria-label="축소"
+              className="grid size-8 place-items-center rounded-full bg-white/95 text-base font-bold text-stone-700 shadow ring-1 ring-stone-200 disabled:text-stone-300"
+            >
+              −
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* 도구 + 히스토리 한 줄 */}
+      {/* 도구 + 히스토리 (가로 스크롤 한 줄) */}
       <section className="px-5 pt-3">
-        <div className="grid grid-cols-5 gap-2">
-          <ToolButton
-            active={tool === "brush"}
-            onClick={() => setTool("brush")}
-            label="브러시"
-            emoji="🖌️"
-          />
-          <ToolButton
-            active={tool === "bucket"}
-            onClick={() => setTool("bucket")}
-            label="페인트통"
-            emoji="🪣"
-          />
-          <ToolButton
-            active={tool === "eraser"}
-            onClick={() => setTool("eraser")}
-            label="지우개"
-            emoji="🧽"
-          />
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {TOOLS.map((t) => (
+            <ToolButton
+              key={t.id}
+              active={tool === t.id}
+              onClick={() => setTool(t.id)}
+              label={t.label}
+              emoji={t.emoji}
+            />
+          ))}
           <SmallIconButton onClick={undo} disabled={!canUndo} label="되돌리기">
             ↺
           </SmallIconButton>
@@ -382,7 +566,7 @@ export default function ColorCanvas({ id }: { id: string }) {
         </div>
       </section>
 
-      {/* 굵기 */}
+      {/* 굵기 — 페인트통/스탬프 외에는 적용 */}
       {tool !== "bucket" && (
         <section className="px-5 pt-3">
           <div className="grid grid-cols-3 gap-2">
@@ -411,7 +595,7 @@ export default function ColorCanvas({ id }: { id: string }) {
         </section>
       )}
 
-      {/* 색 + 헤더 색 미리보기 + 전부 지우기 */}
+      {/* 색 + 전부 지우기 */}
       <section className="px-5 pt-3">
         <div className="flex items-center gap-3">
           <span
@@ -491,10 +675,11 @@ function ToolButton({
       onClick={onClick}
       aria-pressed={active}
       className={
-        "flex flex-col items-center justify-center gap-0.5 rounded-2xl py-2 text-[11px] font-semibold transition-colors " +
+        "flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-2 py-2 text-[11px] font-semibold transition-colors " +
         (active
           ? "bg-stone-900 text-white"
-          : "bg-white text-stone-700 ring-1 ring-stone-200")
+          : "bg-white text-stone-700 ring-1 ring-stone-200") +
+        " min-w-14"
       }
     >
       <span className="text-lg" aria-hidden>
@@ -522,7 +707,7 @@ function SmallIconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-full items-center justify-center rounded-2xl bg-white text-xl font-bold text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
+      className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-xl font-bold text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
     >
       {children}
     </button>

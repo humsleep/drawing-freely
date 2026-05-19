@@ -24,6 +24,8 @@ export type Work = {
   pngData?: string;
   /** 색칠된 작품 만든 시각 (ms) */
   createdAt?: number;
+  /** 원본 선화 id (예: `animal-elephant`). '다시 색칠' 진입에 사용 */
+  sourceId?: string;
 };
 
 export type Template = {

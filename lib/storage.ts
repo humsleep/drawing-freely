@@ -55,3 +55,32 @@ export function updateStoredWork(id: string, patch: Partial<Work>): void {
 export function makeStoredId(): string {
   return `local-${Date.now()}`;
 }
+
+/* ---------- 빌더 → 색칠 전달용 임시 슬롯 ---------- */
+
+const PENDING_KEY = "drawingFreely.pendingColor";
+
+export type PendingColor = {
+  /** SVG 마크업 또는 PNG dataURL */
+  source: string;
+  format: "svg" | "png";
+};
+
+export function savePendingColor(p: PendingColor): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify(p));
+  } catch {
+    // 용량 초과 시 무시. 빌더 결과는 즉시 사용되는 임시 데이터라 폴백 불필요.
+  }
+}
+
+export function loadPendingColor(): PendingColor | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    return raw ? (JSON.parse(raw) as PendingColor) : null;
+  } catch {
+    return null;
+  }
+}
