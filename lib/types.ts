@@ -24,8 +24,11 @@ export type Work = {
   pngData?: string;
   /** 색칠된 작품 만든 시각 (ms) */
   createdAt?: number;
-  /** 원본 선화 id (예: `animal-elephant`). '다시 색칠' 진입에 사용 */
+  /** 원본 선화 id (예: `animal-elephant` 또는 자신의 `local-<ts>`). '다시 색칠' 진입에 사용 */
   sourceId?: string;
+  /** 빌더 결과를 색칠하고 저장한 경우, 원본 선화(PNG dataURL 또는 SVG 마크업)를
+   *  함께 보관해 '다시 색칠'에서 재사용. 자산 폴더에 있는 동물 도안은 불필요. */
+  lineArtData?: string;
 };
 
 export type Template = {

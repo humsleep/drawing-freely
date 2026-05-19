@@ -52,6 +52,16 @@ export function updateStoredWork(id: string, patch: Partial<Work>): void {
   localStorage.setItem(KEY, JSON.stringify(next));
 }
 
+export function getStoredWork(id: string): Work | null {
+  return loadStoredWorks().find((w) => w.id === id) ?? null;
+}
+
+export function deleteStoredWork(id: string): void {
+  if (typeof window === "undefined") return;
+  const next = loadStoredWorks().filter((w) => w.id !== id);
+  localStorage.setItem(KEY, JSON.stringify(next));
+}
+
 export function makeStoredId(): string {
   return `local-${Date.now()}`;
 }
