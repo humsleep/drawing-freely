@@ -12,7 +12,8 @@
 - 선 굵기: `stroke-width="3"` (모바일 가독)
 - 선 단점: `stroke-linecap="round"`, `stroke-linejoin="round"`
 - **음영·그라데이션·패턴 금지** (인쇄 시 잉크 낭비)
-- 흰 면이 필요하면 `fill="white"`로 닫기
+- **`fill="white"` 금지 — 반드시 `fill="none"`.**
+  앱 안에서 색칠할 때 흰 면이 색을 가린다. 검정 점·작은 검정 도형(눈동자 등)만 `fill="#1f1b16"` 허용.
 
 ## 폴더 구조와 파일명
 

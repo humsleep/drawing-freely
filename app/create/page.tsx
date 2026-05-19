@@ -53,6 +53,24 @@ export default function CreatePage() {
             </div>
           </div>
         </Link>
+
+        {/* 임시 색칠 진입점 (개발 중) — 다음 PR에서 빌더 결과·도안에서 자연스럽게 연결됨 */}
+        <Link
+          href="/color/animal-elephant"
+          className="rounded-3xl bg-gradient-to-br from-emerald-200 via-teal-100 to-cyan-100 p-6 shadow-sm active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-4">
+            <span className="text-5xl" aria-hidden>🎨</span>
+            <div className="min-w-0">
+              <p className="text-lg font-extrabold text-stone-900">
+                색칠하기 <span className="text-xs font-medium text-stone-500">(개발 중)</span>
+              </p>
+              <p className="mt-1 text-sm text-stone-700">
+                도안 위에 손가락으로 직접 색칠해요.
+              </p>
+            </div>
+          </div>
+        </Link>
       </section>
 
       <section className="px-5 pt-10">
