@@ -10,11 +10,14 @@ import {
   type AnimalId,
 } from "@/lib/assets";
 import {
+  getStoredWork,
   loadPendingColor,
   makeStoredId,
   saveStoredWork,
 } from "@/lib/storage";
 import type { Work } from "@/lib/types";
+
+const STAMPS = ["⭐", "❤️", "☺️", "🌟", "🌸", "🦋", "🌈", "🐾"] as const;
 
 type Tool = "brush" | "crayon" | "marker" | "spray" | "stamp" | "bucket" | "eraser";
 type Width = 6 | 12 | 24;
@@ -61,12 +64,25 @@ const TOOLS: { id: Tool; label: string; emoji: string }[] = [
   { id: "eraser", label: "지우개", emoji: "🧽" },
 ];
 
+/** 정적 자산(/assets) 기반 도안만 즉시 해결 가능. 빌더 저장본(`local-*`)은
+ *  비동기로 storage 에서 읽어 setBuilderSrc로 별도 채운다. */
 function resolveLineArt(id: string): string | null {
   if (id.startsWith("animal-")) {
     const name = id.slice("animal-".length) as AnimalId;
     if ((ANIMALS as readonly string[]).includes(name)) return animalSrc(name);
   }
   return null;
+}
+
+/** `local-*` 또는 `local`(pending) 의 빌더 도안 데이터 → 화면에 그릴 수 있는 src 로 변환.
+ *  - dataURL(data:image/...) 은 그대로 반환
+ *  - SVG 마크업 (`<svg ...`) 은 blob URL 로 감싸 반환 */
+function imageSrcFromBuilderData(data: string): string {
+  if (data.startsWith("<svg") || data.startsWith("<?xml")) {
+    const blob = new Blob([data], { type: "image/svg+xml" });
+    return URL.createObjectURL(blob);
+  }
+  return data;
 }
 
 function defaultTitle(id: string, isLocal: boolean): string {
@@ -81,9 +97,13 @@ function defaultTitle(id: string, isLocal: boolean): string {
 
 export default function ColorCanvas({ id }: { id: string }) {
   const lineArtSrc = resolveLineArt(id);
-  // 빌더 결과(localStorage `pendingColor`)에서 가져온 SVG/PNG 마크업
-  const [pendingSrc, setPendingSrc] = useState<string | null>(null);
-  const [pendingReady, setPendingReady] = useState(id !== "local");
+  // 빌더에서 만든 도안 (id === 'local' = pendingColor, id.startsWith('local-') = 저장본)
+  const [builderSrc, setBuilderSrc] = useState<string | null>(null);
+  // 저장 시 lineArtData 로 함께 보관할 원본 빌더 도안 raw 데이터
+  const builderRawRef = useRef<string | null>(null);
+  const [builderReady, setBuilderReady] = useState(
+    id !== "local" && !id.startsWith("local-"),
+  );
 
   const paintRef = useRef<HTMLCanvasElement>(null);
   const lineRef = useRef<HTMLCanvasElement>(null);
@@ -91,6 +111,7 @@ export default function ColorCanvas({ id }: { id: string }) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState<string>(COLORS[0].hex);
   const [width, setWidth] = useState<Width>(12);
+  const [stampEmoji, setStampEmoji] = useState<string>(STAMPS[0]);
   const [toast, setToast] = useState<string>("");
   const [zoom, setZoom] = useState<number>(1);
 
@@ -135,24 +156,30 @@ export default function ColorCanvas({ id }: { id: string }) {
     setHistoryVer((v) => v + 1);
   }
 
-  // 1) `local` id면 pendingColor 로드, 2) 선화 캔버스에 베이크
+  // 1) 빌더 출처(`local` 또는 저장본 `local-*`) 도안 로드
   useEffect(() => {
     if (id === "local") {
+      // 빌더에서 막 넘어옴
       const p = loadPendingColor();
       if (p) {
-        if (p.format === "svg") {
-          const blob = new Blob([p.source], { type: "image/svg+xml" });
-          setPendingSrc(URL.createObjectURL(blob));
-        } else {
-          setPendingSrc(p.source);
-        }
+        builderRawRef.current = p.source;
+        setBuilderSrc(imageSrcFromBuilderData(p.source));
       }
-      setPendingReady(true);
+      setBuilderReady(true);
+    } else if (id.startsWith("local-")) {
+      // 저장본의 lineArtData 로 다시 색칠
+      const w = getStoredWork(id);
+      if (w?.lineArtData) {
+        builderRawRef.current = w.lineArtData;
+        setBuilderSrc(imageSrcFromBuilderData(w.lineArtData));
+      }
+      setBuilderReady(true);
     }
   }, [id]);
 
   useEffect(() => {
-    const src = id === "local" ? pendingSrc : lineArtSrc;
+    const src =
+      id.startsWith("local") ? builderSrc : lineArtSrc;
     if (!src) return;
     const lineCanvas = lineRef.current;
     const paint = paintRef.current;
@@ -176,7 +203,7 @@ export default function ColorCanvas({ id }: { id: string }) {
         setHistoryVer((v) => v + 1);
       }
     };
-  }, [lineArtSrc, pendingSrc, id]);
+  }, [lineArtSrc, builderSrc, id]);
 
   function getPos(e: React.PointerEvent): { x: number; y: number } | null {
     const canvas = paintRef.current;
@@ -245,7 +272,7 @@ export default function ColorCanvas({ id }: { id: string }) {
     ctx.font = `${width * 4}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("⭐", x, y);
+    ctx.fillText(stampEmoji, x, y);
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -419,17 +446,24 @@ export default function ColorCanvas({ id }: { id: string }) {
     const temp = composeImage();
     if (!temp) return;
     const pngData = temp.toDataURL("image/png");
-    const isLocal = id === "local";
+    const isFromBuilder = id === "local" || id.startsWith("local-");
+    const newId = makeStoredId();
     const work: Work = {
-      id: makeStoredId(),
-      title: defaultTitle(id, isLocal),
+      id: newId,
+      title: defaultTitle(id, id === "local"),
       ageBand: "7-9",
       nickname: "토토",
       isPublic: false,
       likeCount: 0,
       pngData,
       createdAt: Date.now(),
-      sourceId: isLocal ? undefined : id,
+      // 빌더 도안은 자기 자신 id 로 sourceId 설정 → '다시 색칠' 가능
+      // 자산 도안(animal-*)은 원래 id 그대로
+      sourceId: isFromBuilder ? newId : id,
+      // 빌더 도안은 원본 라인아트도 함께 보관 (자산은 /public 에 있어 불필요)
+      lineArtData: isFromBuilder
+        ? builderRawRef.current ?? undefined
+        : undefined,
     };
     saveStoredWork(work);
     showToast("내 작품에 저장됐어요");
@@ -442,7 +476,8 @@ export default function ColorCanvas({ id }: { id: string }) {
     setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
   }
 
-  const hasLineArt = id === "local" ? pendingReady && !!pendingSrc : !!lineArtSrc;
+  const hasLineArt =
+    id.startsWith("local") ? builderReady && !!builderSrc : !!lineArtSrc;
 
   return (
     <>
@@ -470,7 +505,7 @@ export default function ColorCanvas({ id }: { id: string }) {
         </div>
       </header>
 
-      {!hasLineArt && id !== "local" && (
+      {!hasLineArt && !id.startsWith("local") && (
         <p className="px-5 pt-3 text-xs text-rose-600">
           도안을 찾을 수 없어요.{" "}
           <Link href="/templates" className="underline">
@@ -478,7 +513,7 @@ export default function ColorCanvas({ id }: { id: string }) {
           </Link>
         </p>
       )}
-      {id === "local" && pendingReady && !pendingSrc && (
+      {id.startsWith("local") && builderReady && !builderSrc && (
         <p className="px-5 pt-3 text-xs text-rose-600">
           색칠할 그림이 없어요.{" "}
           <Link href="/create" className="underline">
@@ -566,7 +601,41 @@ export default function ColorCanvas({ id }: { id: string }) {
         </div>
       </section>
 
-      {/* 굵기 — 페인트통/스탬프 외에는 적용 */}
+      {/* 스탬프 종류 picker */}
+      {tool === "stamp" && (
+        <section className="px-5 pt-3">
+          <ul
+            className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+            role="radiogroup"
+            aria-label="스탬프 종류"
+          >
+            {STAMPS.map((s) => {
+              const isSelected = stampEmoji === s;
+              return (
+                <li key={s} className="shrink-0">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-label={`스탬프 ${s}`}
+                    onClick={() => setStampEmoji(s)}
+                    className={
+                      "grid size-10 place-items-center rounded-2xl text-xl transition-colors " +
+                      (isSelected
+                        ? "bg-stone-900 ring-2 ring-stone-900"
+                        : "bg-white ring-1 ring-stone-200 active:scale-95")
+                    }
+                  >
+                    {s}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* 굵기 — 페인트통 외에는 적용 (스탬프 굵기는 크기 조절) */}
       {tool !== "bucket" && (
         <section className="px-5 pt-3">
           <div className="grid grid-cols-3 gap-2">

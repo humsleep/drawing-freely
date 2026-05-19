@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
 import { requiresPublishConfirm } from "@/lib/policy";
-import { loadStoredWorks, updateStoredWork } from "@/lib/storage";
+import {
+  deleteStoredWork,
+  loadStoredWorks,
+  updateStoredWork,
+} from "@/lib/storage";
 import type { Work } from "@/lib/types";
 
 const SEED_WORKS: Work[] = [
@@ -18,11 +22,15 @@ export default function MyWorksPage() {
   const [toast, setToast] = useState<string>("");
 
   // 색칠해서 저장한 작품(localStorage)을 시드 앞에 prepend.
+  // 탭 복귀 시(visibilitychange)에도 다시 읽어 최신 상태 유지.
   useEffect(() => {
-    const stored = loadStoredWorks();
-    if (stored.length > 0) {
+    function refresh() {
+      const stored = loadStoredWorks();
       setWorks([...stored, ...SEED_WORKS]);
     }
+    refresh();
+    document.addEventListener("visibilitychange", refresh);
+    return () => document.removeEventListener("visibilitychange", refresh);
   }, []);
 
   function onTogglePublic(w: Work) {
@@ -37,6 +45,16 @@ export default function MyWorksPage() {
       updateStoredWork(w.id, { isPublic: next });
     }
     setToast(next ? "갤러리에 공개됐어요." : "이제 나만 볼 수 있어요.");
+    window.setTimeout(() => setToast(""), 1800);
+  }
+
+  function onDelete(w: Work) {
+    if (!window.confirm(`'${w.title}'을(를) 지울까요? 되돌릴 수 없어요.`)) return;
+    setWorks((prev) => prev.filter((it) => it.id !== w.id));
+    if (w.id.startsWith("local-")) {
+      deleteStoredWork(w.id);
+    }
+    setToast("지웠어요.");
     window.setTimeout(() => setToast(""), 1800);
   }
 
@@ -84,7 +102,11 @@ export default function MyWorksPage() {
           <ul className="flex flex-col gap-4">
             {works.map((w) => (
               <li key={w.id}>
-                <WorkCard work={w} onTogglePublic={() => onTogglePublic(w)} />
+                <WorkCard
+                  work={w}
+                  onTogglePublic={() => onTogglePublic(w)}
+                  onDelete={w.id.startsWith("local-") ? () => onDelete(w) : undefined}
+                />
               </li>
             ))}
           </ul>
@@ -106,7 +128,15 @@ export default function MyWorksPage() {
   );
 }
 
-function WorkCard({ work, onTogglePublic }: { work: Work; onTogglePublic: () => void }) {
+function WorkCard({
+  work,
+  onTogglePublic,
+  onDelete,
+}: {
+  work: Work;
+  onTogglePublic: () => void;
+  onDelete?: () => void;
+}) {
   return (
     <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
       <div className="flex gap-3 p-3">
@@ -140,7 +170,7 @@ function WorkCard({ work, onTogglePublic }: { work: Work; onTogglePublic: () => 
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-stone-100 px-3 py-2">
+      <div className="flex items-center justify-between gap-2 border-t border-stone-100 px-3 py-2">
         {work.sourceId ? (
           <Link
             href={`/color/${work.sourceId}`}
@@ -151,7 +181,21 @@ function WorkCard({ work, onTogglePublic }: { work: Work; onTogglePublic: () => 
         ) : (
           <span />
         )}
-        <PublicToggle isPublic={work.isPublic} onToggle={onTogglePublic} />
+        <div className="flex items-center gap-1">
+          <PublicToggle isPublic={work.isPublic} onToggle={onTogglePublic} />
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="작품 지우기"
+              className="grid size-9 place-items-center rounded-full text-stone-500 hover:bg-rose-50 hover:text-rose-600"
+            >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );
