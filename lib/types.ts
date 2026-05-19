@@ -20,6 +20,10 @@ export type Work = {
   drawingUrl?: string;
   /** v0 시드 시각화용. 백엔드 도입 시 제거. */
   hue?: number;
+  /** 사용자가 색칠해 저장한 PNG dataURL (localStorage 시절 — 백엔드 결합 시 Storage URL로 교체) */
+  pngData?: string;
+  /** 색칠된 작품 만든 시각 (ms) */
+  createdAt?: number;
 };
 
 export type Template = {
