@@ -6,8 +6,8 @@
            Q80 170 100 170
            Q120 170 135 150
            Q148 130 148 95
-           Q145 45 100 45 Z" fill="white"/>
+           Q145 45 100 45 Z" fill="none"/>
   <!-- 귀 -->
-  <ellipse cx="55" cy="110" rx="6" ry="11" fill="white"/>
-  <ellipse cx="145" cy="110" rx="6" ry="11" fill="white"/>
+  <ellipse cx="55" cy="110" rx="6" ry="11" fill="none"/>
+  <ellipse cx="145" cy="110" rx="6" ry="11" fill="none"/>
 </svg>
