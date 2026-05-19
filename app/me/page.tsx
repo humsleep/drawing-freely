@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
 import { requiresPublishConfirm } from "@/lib/policy";
+import { loadStoredWorks, updateStoredWork } from "@/lib/storage";
 import type { Work } from "@/lib/types";
 
 const SEED_WORKS: Work[] = [
@@ -16,6 +17,14 @@ export default function MyWorksPage() {
   const [works, setWorks] = useState<Work[]>(SEED_WORKS);
   const [toast, setToast] = useState<string>("");
 
+  // 색칠해서 저장한 작품(localStorage)을 시드 앞에 prepend.
+  useEffect(() => {
+    const stored = loadStoredWorks();
+    if (stored.length > 0) {
+      setWorks([...stored, ...SEED_WORKS]);
+    }
+  }, []);
+
   function onTogglePublic(w: Work) {
     const next = !w.isPublic;
     if (requiresPublishConfirm(w.isPublic, next)) {
@@ -23,6 +32,10 @@ export default function MyWorksPage() {
       if (!ok) return;
     }
     setWorks((prev) => prev.map((it) => (it.id === w.id ? { ...it, isPublic: next } : it)));
+    // 저장된 작품이면 localStorage 도 업데이트
+    if (w.id.startsWith("local-")) {
+      updateStoredWork(w.id, { isPublic: next });
+    }
     setToast(next ? "갤러리에 공개됐어요." : "이제 나만 볼 수 있어요.");
     window.setTimeout(() => setToast(""), 1800);
   }
@@ -97,7 +110,17 @@ function WorkCard({ work, onTogglePublic }: { work: Work; onTogglePublic: () => 
   return (
     <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
       <div className="flex gap-3 p-3">
-        <Thumb hue={work.hue ?? 0} />
+        {work.pngData ? (
+          /* 색칠해서 저장된 실제 작품. eslint-disable-next-line @next/next/no-img-element */
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={work.pngData}
+            alt={work.title}
+            className="size-24 shrink-0 rounded-xl bg-white object-contain ring-1 ring-stone-200"
+          />
+        ) : (
+          <Thumb hue={work.hue ?? 0} />
+        )}
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-start justify-between gap-2">
             <h2 className="truncate text-base font-bold text-stone-900">{work.title}</h2>
