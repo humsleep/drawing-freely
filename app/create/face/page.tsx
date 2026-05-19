@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { TabBar } from "@/app/_components/TabBar";
 import { FACE_SLOTS, facePartSrc, type FaceSlot } from "@/lib/assets";
+import { savePendingColor } from "@/lib/storage";
 
 type SlotState = Record<FaceSlot, number>;
 
@@ -19,6 +21,7 @@ const INITIAL: SlotState = {
 };
 
 export default function FaceBuilderPage() {
+  const router = useRouter();
   const [picks, setPicks] = useState<SlotState>(INITIAL);
   const [saving, setSaving] = useState(false);
 
@@ -48,20 +51,41 @@ export default function FaceBuilderPage() {
     }
   }
 
+  async function onColor() {
+    setSaving(true);
+    try {
+      const svg = await composeFaceSvg(picks);
+      savePendingColor({ source: svg, format: "svg" });
+      router.push("/color/local");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <>
       <header className="flex items-center justify-between px-5 pt-6">
         <Link href="/create" className="text-sm font-medium text-stone-500">
           ← 만들기
         </Link>
-        <button
-          type="button"
-          onClick={onDownload}
-          disabled={saving}
-          className="rounded-full bg-stone-900 px-4 py-1.5 text-sm font-bold text-white disabled:bg-stone-400"
-        >
-          {saving ? "준비 중…" : "받기"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onDownload}
+            disabled={saving}
+            className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-stone-800 ring-1 ring-stone-200 disabled:text-stone-400"
+          >
+            {saving ? "…" : "받기"}
+          </button>
+          <button
+            type="button"
+            onClick={onColor}
+            disabled={saving}
+            className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
+          >
+            색칠하기
+          </button>
+        </div>
       </header>
 
       {/* 얼굴 미리보기 — 200x200 좌표계 위에 8개 SVG 스택 */}

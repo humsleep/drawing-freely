@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Stage,
   Layer,
@@ -14,6 +15,7 @@ import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { TabBar } from "@/app/_components/TabBar";
 import { ANIMALS, ANIMAL_LABEL, animalSrc, type AnimalId } from "@/lib/assets";
+import { savePendingColor } from "@/lib/storage";
 
 /** 캔버스 좌표계(4:5 인쇄 비율, A4 친화). 화면에 맞춰 CSS로 스케일. */
 const STAGE_W = 400;
@@ -43,6 +45,7 @@ type TextItem = {
 type Item = AnimalItem | TextItem;
 
 export default function AnimalBuilder() {
+  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -120,16 +123,39 @@ export default function AnimalBuilder() {
     }
   }
 
-  async function onDownload() {
+  async function exportPng(transparentBg: boolean): Promise<string | null> {
     setSelectedId(null);
     await new Promise((r) => requestAnimationFrame(r));
     const stage = stageRef.current;
-    if (!stage) return;
+    if (!stage) return null;
+    let bg: Konva.Node | null = null;
+    if (transparentBg) {
+      bg = layerRef.current?.findOne(".bg") ?? null;
+      bg?.hide();
+      stage.draw();
+    }
     const dataUrl = stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" });
+    if (bg) {
+      bg.show();
+      stage.draw();
+    }
+    return dataUrl;
+  }
+
+  async function onDownload() {
+    const dataUrl = await exportPng(false);
+    if (!dataUrl) return;
     const a = document.createElement("a");
     a.href = dataUrl;
     a.download = "그림자유-도안.png";
     a.click();
+  }
+
+  async function onColor() {
+    const dataUrl = await exportPng(true);
+    if (!dataUrl) return;
+    savePendingColor({ source: dataUrl, format: "png" });
+    router.push("/color/local");
   }
 
   return (
@@ -155,9 +181,17 @@ export default function AnimalBuilder() {
             type="button"
             onClick={onDownload}
             disabled={items.length === 0}
-            className="rounded-full bg-stone-900 px-4 py-1.5 text-sm font-bold text-white disabled:bg-stone-400"
+            className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-stone-800 ring-1 ring-stone-200 disabled:text-stone-400"
           >
             받기
+          </button>
+          <button
+            type="button"
+            onClick={onColor}
+            disabled={items.length === 0}
+            className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
+          >
+            색칠하기
           </button>
         </div>
       </header>

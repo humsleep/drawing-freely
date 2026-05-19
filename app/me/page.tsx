@@ -140,7 +140,17 @@ function WorkCard({ work, onTogglePublic }: { work: Work; onTogglePublic: () => 
         </div>
       </div>
 
-      <div className="flex items-center justify-end border-t border-stone-100 px-3 py-2">
+      <div className="flex items-center justify-between border-t border-stone-100 px-3 py-2">
+        {work.sourceId ? (
+          <Link
+            href={`/color/${work.sourceId}`}
+            className="rounded-full px-3 py-1.5 text-xs font-semibold text-stone-600 hover:bg-stone-100"
+          >
+            다시 색칠
+          </Link>
+        ) : (
+          <span />
+        )}
         <PublicToggle isPublic={work.isPublic} onToggle={onTogglePublic} />
       </div>
     </article>
