@@ -30,15 +30,16 @@ public/assets/
 │   ├── fox.svg
 │   ├── owl.svg
 │   └── dolphin.svg
-└── face/                   # 얼굴 빌더용 (각 슬롯 5–6종)
-    ├── shape/    1.svg ... 5.svg   (얼굴 윤곽)
-    ├── eyes/     1.svg ... 6.svg
-    ├── eyebrows/ 1.svg ... 5.svg
-    ├── nose/     1.svg ... 5.svg
-    ├── mouth/    1.svg ... 6.svg
-    ├── hair/     1.svg ... 6.svg
-    ├── top/      1.svg ... 5.svg   (상의)
-    └── bottom/   1.svg ... 4.svg   (하의)
+└── face/                   # 얼굴 빌더용
+    ├── shape/      1.svg ... 5.svg   (얼굴 윤곽)
+    ├── hair/       1.svg ... 6.svg
+    ├── eyebrows/   1.svg ... 5.svg
+    ├── eyes/       1.svg ... 6.svg
+    ├── nose/       1.svg ... 5.svg
+    ├── mouth/      1.svg ... 6.svg
+    ├── top/        1.svg ... 5.svg   (상의 — y=160-185 안에만)
+    ├── bottom/     1.svg ... 4.svg   (하의 — y=185-200 좁은 띠)
+    └── accessory/  1.svg ... 5.svg   (1번은 빈 SVG = '안 함')
 ```
 
 새 자산을 추가하려면 같은 폴더에 다음 번호로 추가하고
@@ -56,7 +57,9 @@ public/assets/
 - **nose (코)**: 중앙. `(90–110, 95–125)`
 - **mouth (입)**: 아랫 1/3. `(80–120, 130–150)`
 - **top (상의)**: 캔버스 바닥 부근. `(40–160, 170–200)`
-- **bottom (하의)**: 보통 안 보임(상의가 가림). 전신 모드용 예비
+- **top (상의)**: 어깨선. `(45–155, 160–185)` — y=185 위에서 끝나야 하의가 보임
+- **bottom (하의)**: 상의 아래 좁은 띠. `(45–155, 185–200)` — 15px 정도만 보임
+- **accessory (악세사리)**: 자유 위치. 1번은 빈 SVG('안 함'). 안경/모자/나비넥타이/머리장식 등
 
 > 부품이 자기 위치 밖으로 그려지지 않게 디자이너/AI에게 명시해야 한다.
 
