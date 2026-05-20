@@ -43,10 +43,12 @@ export type FaceSlot =
   | "nose"
   | "mouth"
   | "top"
-  | "bottom";
+  | "bottom"
+  | "accessory";
 
+/** 사용자에게 보이는 탭 순서 (얼굴 위→아래, 옷, 마지막 악세사리). */
 export const FACE_SLOTS: { id: FaceSlot; label: string; count: number }[] = [
-  { id: "shape", label: "얼굴형", count: 5 },
+  { id: "shape", label: "얼굴", count: 5 },
   { id: "hair", label: "머리", count: 6 },
   { id: "eyebrows", label: "눈썹", count: 5 },
   { id: "eyes", label: "눈", count: 6 },
@@ -54,6 +56,26 @@ export const FACE_SLOTS: { id: FaceSlot; label: string; count: number }[] = [
   { id: "mouth", label: "입", count: 6 },
   { id: "top", label: "상의", count: 5 },
   { id: "bottom", label: "하의", count: 4 },
+  { id: "accessory", label: "악세사리", count: 5 },
+];
+
+/**
+ * 캔버스 z-stack (뒤 → 앞). 탭 순서와 별개.
+ * - shape 가 맨 뒤
+ * - bottom(하의) 은 top(상의) 보다 뒤에 와야 자연스러움
+ * - hair 는 옷보다 뒤가 아닌 위에 (이마/어깨선 자연)
+ * - accessory 는 안경·모자 등이라 맨 앞
+ */
+export const FACE_RENDER_ORDER: FaceSlot[] = [
+  "shape",
+  "bottom",
+  "top",
+  "hair",
+  "eyebrows",
+  "eyes",
+  "nose",
+  "mouth",
+  "accessory",
 ];
 
 export function facePartSrc(slot: FaceSlot, index: number): string {

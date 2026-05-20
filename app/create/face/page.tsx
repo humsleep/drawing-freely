@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TabBar } from "@/app/_components/TabBar";
-import { FACE_SLOTS, facePartSrc, type FaceSlot } from "@/lib/assets";
+import {
+  FACE_RENDER_ORDER,
+  FACE_SLOTS,
+  facePartSrc,
+  type FaceSlot,
+} from "@/lib/assets";
 import { savePendingColor } from "@/lib/storage";
 
 type SlotState = Record<FaceSlot, number>;
@@ -18,12 +23,16 @@ const INITIAL: SlotState = {
   mouth: 1,
   top: 1,
   bottom: 1,
+  accessory: 1, // 1번 = 안 함 (빈 SVG)
 };
 
 export default function FaceBuilderPage() {
   const router = useRouter();
   const [picks, setPicks] = useState<SlotState>(INITIAL);
+  const [activeTab, setActiveTab] = useState<FaceSlot>("shape");
   const [saving, setSaving] = useState(false);
+
+  const activeSlot = FACE_SLOTS.find((s) => s.id === activeTab) ?? FACE_SLOTS[0];
 
   function pick(slot: FaceSlot, idx: number) {
     setPicks((prev) => ({ ...prev, [slot]: idx }));
@@ -82,66 +91,90 @@ export default function FaceBuilderPage() {
         </div>
       </header>
 
-      {/* 얼굴 미리보기 — sticky로 슬롯을 스크롤해도 항상 보이게 */}
+      {/* 얼굴 미리보기 — sticky */}
       <section className="sticky top-0 z-10 bg-[#fffaf3] px-5 pt-3 pb-2">
-        <div className="relative mx-auto aspect-square w-40 overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
-          {FACE_SLOTS.map((slot) => (
+        <div className="relative mx-auto aspect-square w-44 overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
+          {FACE_RENDER_ORDER.map((slotId) => (
             <FacePartLayer
-              key={slot.id}
-              src={facePartSrc(slot.id, picks[slot.id])}
+              key={slotId}
+              src={facePartSrc(slotId, picks[slotId])}
             />
           ))}
         </div>
       </section>
 
-      {/* 슬롯 — 각 슬롯이 카드. 라벨 + 가로 썸네일 행. 탭으로 직접 선택. */}
-      <section className="px-5 pt-2 pb-2">
-        <ul className="flex flex-col gap-3">
-          {FACE_SLOTS.map((slot) => (
-            <li
-              key={slot.id}
-              className="rounded-2xl bg-white p-3 ring-1 ring-stone-200"
-            >
-              <p className="mb-2 text-xs font-bold text-stone-700">
-                {slot.label}
-              </p>
-              <ul
-                className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-                role="radiogroup"
-                aria-label={slot.label}
-              >
-                {Array.from({ length: slot.count }, (_, i) => i + 1).map(
-                  (idx) => {
-                    const isSelected = picks[slot.id] === idx;
-                    return (
-                      <li key={idx} className="shrink-0">
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={isSelected}
-                          aria-label={`${slot.label} ${idx}번`}
-                          onClick={() => pick(slot.id, idx)}
-                          className={
-                            "block size-16 overflow-hidden rounded-xl bg-white transition-all " +
-                            (isSelected
-                              ? "ring-4 ring-stone-900 ring-offset-2 ring-offset-white"
-                              : "ring-1 ring-stone-200 active:scale-95")
-                          }
-                        >
-                          <SlotThumb
-                            slotId={slot.id}
-                            idx={idx}
-                            currentShape={picks.shape}
-                          />
-                        </button>
-                      </li>
-                    );
-                  },
-                )}
-              </ul>
-            </li>
-          ))}
+      {/* 슬롯 탭 — 한 행 가로 스크롤 */}
+      <section className="px-5 pt-1">
+        <ul
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2"
+          role="tablist"
+          aria-label="얼굴 부품 종류"
+        >
+          {FACE_SLOTS.map((slot) => {
+            const isActive = activeTab === slot.id;
+            return (
+              <li key={slot.id} className="shrink-0">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(slot.id)}
+                  className={
+                    "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-colors " +
+                    (isActive
+                      ? "bg-stone-900 text-white"
+                      : "bg-white text-stone-700 ring-1 ring-stone-200 active:scale-95")
+                  }
+                >
+                  {slot.label}
+                </button>
+              </li>
+            );
+          })}
         </ul>
+      </section>
+
+      {/* 선택된 탭의 썸네일 그리드 */}
+      <section className="px-5 pb-2">
+        <div className="rounded-2xl bg-white p-3 ring-1 ring-stone-200">
+          <p className="mb-2 text-xs font-semibold text-stone-500">
+            {activeSlot.label} 고르기
+          </p>
+          <ul
+            className="grid grid-cols-4 gap-3"
+            role="radiogroup"
+            aria-label={activeSlot.label}
+          >
+            {Array.from({ length: activeSlot.count }, (_, i) => i + 1).map(
+              (idx) => {
+                const isSelected = picks[activeTab] === idx;
+                return (
+                  <li key={idx}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${activeSlot.label} ${idx}번`}
+                      onClick={() => pick(activeTab, idx)}
+                      className={
+                        "block aspect-square w-full overflow-hidden rounded-xl bg-white transition-all " +
+                        (isSelected
+                          ? "ring-4 ring-stone-900 ring-offset-2 ring-offset-white"
+                          : "ring-1 ring-stone-200 active:scale-95")
+                      }
+                    >
+                      <SlotThumb
+                        slotId={activeTab}
+                        idx={idx}
+                        currentShape={picks.shape}
+                      />
+                    </button>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </div>
       </section>
 
       <TabBar />
@@ -163,9 +196,8 @@ function FacePartLayer({ src }: { src: string }) {
 }
 
 /**
- * 슬롯 썸네일 — 자기 부품 SVG + 현재 얼굴형(아주 옅게)을 함께 보여줘
- * 어린이가 "이게 어떤 부품인지" 직관적으로 알게 한다.
- *  - shape 슬롯은 자기 자신이 얼굴형이라 가이드 안 보임.
+ * 슬롯 썸네일 — 자기 부품 + 현재 얼굴형(아주 옅게)을 함께 보여줘
+ * 어린이가 직관적으로 "어디에 붙는지" 알게 한다.
  */
 function SlotThumb({
   slotId,
@@ -201,13 +233,13 @@ function SlotThumb({
 }
 
 /**
- * 8개 부품 SVG의 내용을 한 번에 받아와 하나의 SVG로 합친다.
- * 다운로드/색칠 시점에만 호출 — 미리보기는 stacked <img>로 충분.
+ * 9개 부품 SVG를 z-stack 순서대로 합쳐 단일 SVG 반환.
+ * 다운로드/색칠 시점에만 호출.
  */
 async function composeFaceSvg(picks: SlotState): Promise<string> {
   const parts = await Promise.all(
-    FACE_SLOTS.map(async (slot) => {
-      const res = await fetch(facePartSrc(slot.id, picks[slot.id]));
+    FACE_RENDER_ORDER.map(async (slotId) => {
+      const res = await fetch(facePartSrc(slotId, picks[slotId]));
       const text = await res.text();
       const match = text.match(/<svg[^>]*>([\s\S]*?)<\/svg>/);
       return match ? match[1] : "";
