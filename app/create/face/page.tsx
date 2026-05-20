@@ -25,14 +25,8 @@ export default function FaceBuilderPage() {
   const [picks, setPicks] = useState<SlotState>(INITIAL);
   const [saving, setSaving] = useState(false);
 
-  function step(slot: FaceSlot, delta: 1 | -1) {
-    setPicks((prev) => {
-      const slotDef = FACE_SLOTS.find((s) => s.id === slot);
-      if (!slotDef) return prev;
-      const max = slotDef.count;
-      const next = ((prev[slot] - 1 + delta + max) % max) + 1;
-      return { ...prev, [slot]: next };
-    });
+  function pick(slot: FaceSlot, idx: number) {
+    setPicks((prev) => ({ ...prev, [slot]: idx }));
   }
 
   async function onDownload() {
@@ -88,9 +82,9 @@ export default function FaceBuilderPage() {
         </div>
       </header>
 
-      {/* 얼굴 미리보기 — 200x200 좌표계 위에 8개 SVG 스택 */}
-      <section className="px-5 pt-4">
-        <div className="relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-3xl bg-white ring-1 ring-stone-200">
+      {/* 얼굴 미리보기 — sticky로 슬롯을 스크롤해도 항상 보이게 */}
+      <section className="sticky top-0 z-10 bg-[#fffaf3] px-5 pt-3 pb-2">
+        <div className="relative mx-auto aspect-square w-40 overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
           {FACE_SLOTS.map((slot) => (
             <FacePartLayer
               key={slot.id}
@@ -98,41 +92,53 @@ export default function FaceBuilderPage() {
             />
           ))}
         </div>
-        <p className="mt-2 text-center text-xs text-stone-500">
-          A4로 인쇄해서 색칠할 수 있어요.
-        </p>
       </section>
 
-      {/* 슬롯 선택기 */}
-      <section className="px-5 pt-6">
-        <ul className="flex flex-col gap-2">
+      {/* 슬롯 — 각 슬롯이 카드. 라벨 + 가로 썸네일 행. 탭으로 직접 선택. */}
+      <section className="px-5 pt-2 pb-2">
+        <ul className="flex flex-col gap-3">
           {FACE_SLOTS.map((slot) => (
             <li
               key={slot.id}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-stone-200"
+              className="rounded-2xl bg-white p-3 ring-1 ring-stone-200"
             >
-              <span className="w-16 shrink-0 text-sm font-bold text-stone-900">
+              <p className="mb-2 text-xs font-bold text-stone-700">
                 {slot.label}
-              </span>
-              <button
-                type="button"
-                onClick={() => step(slot.id, -1)}
-                aria-label={`${slot.label} 이전`}
-                className="grid size-9 place-items-center rounded-full bg-stone-100 text-lg font-bold text-stone-700 active:scale-95"
+              </p>
+              <ul
+                className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+                role="radiogroup"
+                aria-label={slot.label}
               >
-                ‹
-              </button>
-              <span className="min-w-12 text-center text-sm font-semibold text-stone-600">
-                {picks[slot.id]} / {slot.count}
-              </span>
-              <button
-                type="button"
-                onClick={() => step(slot.id, 1)}
-                aria-label={`${slot.label} 다음`}
-                className="grid size-9 place-items-center rounded-full bg-stone-100 text-lg font-bold text-stone-700 active:scale-95"
-              >
-                ›
-              </button>
+                {Array.from({ length: slot.count }, (_, i) => i + 1).map(
+                  (idx) => {
+                    const isSelected = picks[slot.id] === idx;
+                    return (
+                      <li key={idx} className="shrink-0">
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-label={`${slot.label} ${idx}번`}
+                          onClick={() => pick(slot.id, idx)}
+                          className={
+                            "block size-16 overflow-hidden rounded-xl bg-white transition-all " +
+                            (isSelected
+                              ? "ring-4 ring-stone-900 ring-offset-2 ring-offset-white"
+                              : "ring-1 ring-stone-200 active:scale-95")
+                          }
+                        >
+                          <SlotThumb
+                            slotId={slot.id}
+                            idx={idx}
+                            currentShape={picks.shape}
+                          />
+                        </button>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
             </li>
           ))}
         </ul>
@@ -143,9 +149,7 @@ export default function FaceBuilderPage() {
   );
 }
 
-/* eslint-disable-next-line @next/next/no-img-element */
 function FacePartLayer({ src }: { src: string }) {
-  // 자산은 정적 SVG. next/image 의 lazy/blur 가 의미 없고, 스택형 합성엔 단순한 <img>가 적합.
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -159,8 +163,46 @@ function FacePartLayer({ src }: { src: string }) {
 }
 
 /**
+ * 슬롯 썸네일 — 자기 부품 SVG + 현재 얼굴형(아주 옅게)을 함께 보여줘
+ * 어린이가 "이게 어떤 부품인지" 직관적으로 알게 한다.
+ *  - shape 슬롯은 자기 자신이 얼굴형이라 가이드 안 보임.
+ */
+function SlotThumb({
+  slotId,
+  idx,
+  currentShape,
+}: {
+  slotId: FaceSlot;
+  idx: number;
+  currentShape: number;
+}) {
+  return (
+    <div className="relative h-full w-full">
+      {slotId !== "shape" && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={facePartSrc("shape", currentShape)}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full opacity-20"
+          draggable={false}
+        />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={facePartSrc(slotId, idx)}
+        alt=""
+        aria-hidden
+        className="relative h-full w-full"
+        draggable={false}
+      />
+    </div>
+  );
+}
+
+/**
  * 8개 부품 SVG의 내용을 한 번에 받아와 하나의 SVG로 합친다.
- * 다운로드 시점에만 호출 — 미리보기는 stacked <img>로 충분.
+ * 다운로드/색칠 시점에만 호출 — 미리보기는 stacked <img>로 충분.
  */
 async function composeFaceSvg(picks: SlotState): Promise<string> {
   const parts = await Promise.all(
