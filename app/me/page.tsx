@@ -87,15 +87,15 @@ export default function MyWorksPage() {
 
       <section className="px-5 pt-6">
         {works.length === 0 ? (
-          <div className="rounded-2xl bg-white px-6 py-10 text-center ring-1 ring-stone-200">
+          <div className="rounded-3xl bg-white px-6 py-10 text-center ring-1 ring-stone-200">
             <div className="mx-auto size-14 rounded-full bg-amber-100 p-3 text-2xl" aria-hidden>🎨</div>
             <p className="mt-3 text-base font-semibold text-stone-900">아직 만든 작품이 없어요</p>
-            <p className="mt-1 text-sm text-stone-600">사진 한 장으로 도안을 만들어 보세요.</p>
+            <p className="mt-1 text-sm text-stone-600">캐릭터를 만들고 색칠해 보세요.</p>
             <Link
               href="/create"
               className="mt-4 inline-flex items-center justify-center rounded-full bg-violet-600 px-5 py-2.5 text-sm font-bold text-white"
             >
-              새로 만들기
+              지금 만들기
             </Link>
           </div>
         ) : (
@@ -138,7 +138,7 @@ function WorkCard({
   onDelete?: () => void;
 }) {
   return (
-    <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
+    <article className="overflow-hidden rounded-3xl bg-white ring-1 ring-stone-200">
       <div className="flex gap-3 p-3">
         {work.pngData ? (
           /* 색칠해서 저장된 실제 작품. eslint-disable-next-line @next/next/no-img-element */

@@ -161,8 +161,14 @@ export default function AnimalBuilder() {
   return (
     <>
       <header className="flex items-center justify-between px-5 pt-6">
-        <Link href="/create" className="text-sm font-medium text-stone-500">
-          ← 만들기
+        <Link
+          href="/create"
+          aria-label="뒤로"
+          className="grid size-10 place-items-center rounded-full bg-white text-stone-700 ring-1 ring-stone-200"
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </Link>
         <div className="flex items-center gap-2">
           {selectedId && (
@@ -170,9 +176,9 @@ export default function AnimalBuilder() {
               type="button"
               onClick={deleteSelected}
               aria-label="삭제"
-              className="grid size-9 place-items-center rounded-full bg-stone-100 text-stone-700"
+              className="grid size-10 place-items-center rounded-full bg-white text-stone-700 ring-1 ring-stone-200"
             >
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
               </svg>
             </button>
@@ -181,15 +187,18 @@ export default function AnimalBuilder() {
             type="button"
             onClick={onDownload}
             disabled={items.length === 0}
-            className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-stone-800 ring-1 ring-stone-200 disabled:text-stone-400"
+            aria-label="받기"
+            className="grid size-10 place-items-center rounded-full bg-white text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
           >
-            받기
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 4v12M6 12l6 6 6-6M5 20h14" />
+            </svg>
           </button>
           <button
             type="button"
             onClick={onColor}
             disabled={items.length === 0}
-            className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
+            className="rounded-full bg-violet-600 px-3 py-2 text-xs font-bold text-white disabled:bg-stone-400"
           >
             색칠하기
           </button>
