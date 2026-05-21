@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
-import type { Template, Work } from "@/lib/types";
+import { ANIMALS, ANIMAL_LABEL, animalSrc } from "@/lib/assets";
+import type { Work } from "@/lib/types";
 
+/** 시드 — 백엔드 연결 후 실 데이터로 교체 */
 const POPULAR_WORKS: Work[] = [
   { id: "w1", title: "우리집 강아지", nickname: "토토", ageBand: "4-6",  isPublic: true, likeCount: 128, hue: 18 },
   { id: "w2", title: "엄마랑 나",    nickname: "민서", ageBand: "7-9",  isPublic: true, likeCount: 96,  hue: 200 },
@@ -11,12 +13,8 @@ const POPULAR_WORKS: Work[] = [
   { id: "w6", title: "바다 친구들",  nickname: "서아", ageBand: "10-12", isPublic: true, likeCount: 52,  hue: 180 },
 ];
 
-const FREE_TEMPLATES: Template[] = [
-  { id: "t1", title: "사자 가족",  ageBand: "4-6",   hue: 35 },
-  { id: "t2", title: "기차 여행",  ageBand: "7-9",   hue: 215 },
-  { id: "t3", title: "정원의 꽃",  ageBand: "4-6",   hue: 320 },
-  { id: "t4", title: "별자리",     ageBand: "10-12", hue: 250 },
-];
+/** 도안 미리보기 — animal SVG 4개를 그대로 활용 */
+const PREVIEW_TEMPLATES = ANIMALS.slice(0, 4);
 
 export default function Home() {
   return (
@@ -27,26 +25,24 @@ export default function Home() {
         </h1>
       </header>
 
-      {/* 히어로 + 업로드 CTA */}
+      {/* 히어로 — 카피 갱신: 사진 변환 X → 직접 만들고 색칠 */}
       <section className="px-5 pt-6">
-        <div className="rounded-3xl bg-gradient-to-br from-orange-200 via-amber-100 to-rose-100 p-6 shadow-sm">
-          <p className="text-sm font-semibold text-orange-700">사진 한 장으로</p>
+        <div className="rounded-[2rem] bg-gradient-to-br from-violet-200 via-fuchsia-100 to-amber-100 p-6 shadow-sm">
+          <p className="text-sm font-semibold text-violet-700">손가락으로 만들고</p>
           <h2 className="mt-1 text-2xl font-extrabold leading-tight text-stone-900 sm:text-3xl">
-            우리 아이 그림 도안,
-            <br />1분 안에 완성!
+            나만의 캐릭터,
+            <br />색칠해서 자랑해요!
           </h2>
           <p className="mt-2 text-sm text-stone-700">
-            찍은 사진을 색칠 도안으로 바꿔, 인쇄해서 같이 색칠해요.
+            동물·얼굴을 직접 만들고, 손가락으로 색칠하고, 갤러리에 자랑해요.
           </p>
 
           <Link
             href="/create"
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-base font-bold text-white shadow-md transition active:scale-[0.98]"
           >
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            사진으로 그림 만들기
+            <span className="text-lg" aria-hidden>🎨</span>
+            지금 만들기
           </Link>
         </div>
       </section>
@@ -55,16 +51,16 @@ export default function Home() {
       <section className="grid grid-cols-2 gap-3 px-5 pt-6">
         <Link
           href="/templates"
-          className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white px-3 py-4 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
+          className="flex flex-col items-center justify-center gap-1 rounded-3xl bg-white px-3 py-5 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
         >
-          <span className="text-2xl" aria-hidden>📄</span>
+          <span className="text-3xl" aria-hidden>📄</span>
           무료 도안
         </Link>
         <Link
           href="/ranking"
-          className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white px-3 py-4 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
+          className="flex flex-col items-center justify-center gap-1 rounded-3xl bg-white px-3 py-5 text-sm font-semibold text-stone-800 shadow-sm ring-1 ring-stone-200 hover:bg-stone-50"
         >
-          <span className="text-2xl" aria-hidden>🏆</span>
+          <span className="text-3xl" aria-hidden>🏆</span>
           랭킹
         </Link>
       </section>
@@ -73,7 +69,7 @@ export default function Home() {
       <section className="px-5 pt-10">
         <div className="flex items-end justify-between">
           <h3 className="text-lg font-extrabold text-stone-900">이번 주 인기 작품</h3>
-          <Link href="/ranking" className="text-sm font-semibold text-stone-500 hover:text-stone-900">
+          <Link href="/ranking" className="text-sm font-semibold text-violet-600 hover:text-violet-700">
             전체 보기 →
           </Link>
         </div>
@@ -94,23 +90,32 @@ export default function Home() {
         </ul>
       </section>
 
-      {/* 무료 도안 */}
+      {/* 무료 도안 — 실제 동물 SVG로 미리보기 (이전 시드 hue 더미 X) */}
       <section className="px-5 pt-10">
         <div className="flex items-end justify-between">
-          <h3 className="text-lg font-extrabold text-stone-900">무료 도안</h3>
-          <Link href="/templates" className="text-sm font-semibold text-stone-500 hover:text-stone-900">
+          <h3 className="text-lg font-extrabold text-stone-900">색칠할 도안</h3>
+          <Link href="/templates" className="text-sm font-semibold text-violet-600 hover:text-violet-700">
             모두 보기 →
           </Link>
         </div>
-        <p className="mt-1 text-sm text-stone-600">인쇄해서 바로 색칠할 수 있어요.</p>
+        <p className="mt-1 text-sm text-stone-600">탭하면 바로 색칠 시작해요.</p>
 
         <ul className="mt-4 -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-          {FREE_TEMPLATES.map((t) => (
-            <li key={t.id} className="w-40 shrink-0 sm:w-48">
-              <PortraitThumb hue={t.hue ?? 0} />
-              <p className="mt-2 truncate text-sm font-semibold text-stone-900">{t.title}</p>
-              <p className="text-xs text-stone-500">
-                추천 {t.ageBand === "all" ? "모든 나이" : `${t.ageBand}세`}
+          {PREVIEW_TEMPLATES.map((id) => (
+            <li key={id} className="w-40 shrink-0 sm:w-48">
+              <Link
+                href={`/color/animal-${id}`}
+                className="block aspect-square w-full overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200 active:bg-stone-50"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={animalSrc(id)}
+                  alt={ANIMAL_LABEL[id]}
+                  className="h-full w-full object-contain p-3"
+                />
+              </Link>
+              <p className="mt-2 truncate text-sm font-semibold text-stone-900">
+                {ANIMAL_LABEL[id]}
               </p>
             </li>
           ))}
@@ -121,7 +126,7 @@ export default function Home() {
       <section className="px-5 pt-10">
         <Link
           href="/ranking"
-          className="flex items-center justify-between rounded-2xl bg-violet-600 px-5 py-4 text-white shadow-sm"
+          className="flex items-center justify-between rounded-[2rem] bg-violet-600 px-5 py-5 text-white shadow-md"
         >
           <div>
             <p className="text-xs font-semibold text-amber-300">🏆 이번 주 랭킹</p>
@@ -133,12 +138,12 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* 안전 안내 */}
+      {/* 안전 안내 — 사진 업로드 X 사실에 맞춘 카피 */}
       <section className="px-5 pt-10">
         <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <p className="font-semibold">아이와 함께, 안전하게.</p>
           <p className="mt-1 text-emerald-800">
-            업로드한 사진은 도안 변환 후 자동으로 지워져요. 작품은 부모님이 공개를 켤 때만 다른 사람에게 보여요.
+            사진은 받지 않아요. 작품은 부모님이 공개를 켤 때만 다른 사람에게 보여요.
           </p>
         </div>
       </section>
@@ -159,22 +164,6 @@ function WorkThumb({ hue }: { hue: number }) {
         <circle cx="42" cy="40" r="2" fill={stroke} />
         <circle cx="58" cy="40" r="2" fill={stroke} />
         <path d="M44 50 Q50 55 56 50" fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    </div>
-  );
-}
-
-function PortraitThumb({ hue }: { hue: number }) {
-  const bg = `hsl(${hue} 70% 95%)`;
-  const stroke = `hsl(${hue} 45% 35%)`;
-  return (
-    <div className="aspect-[3/4] w-full overflow-hidden rounded-2xl ring-1 ring-stone-200" style={{ background: bg }} aria-hidden>
-      <svg viewBox="0 0 60 80" className="h-full w-full">
-        <rect x="6" y="6" width="48" height="68" rx="4" fill="white" stroke={stroke} strokeWidth="1.5" />
-        <path d="M14 30 Q30 14 46 30" fill="none" stroke={stroke} strokeWidth="2" />
-        <circle cx="22" cy="46" r="6" fill="none" stroke={stroke} strokeWidth="2" />
-        <circle cx="38" cy="46" r="6" fill="none" stroke={stroke} strokeWidth="2" />
-        <path d="M16 62 H44" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
       </svg>
     </div>
   );
