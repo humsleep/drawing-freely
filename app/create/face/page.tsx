@@ -84,7 +84,7 @@ export default function FaceBuilderPage() {
             type="button"
             onClick={onColor}
             disabled={saving}
-            className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
+            className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
           >
             색칠하기
           </button>
@@ -122,7 +122,7 @@ export default function FaceBuilderPage() {
                   className={
                     "whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-colors " +
                     (isActive
-                      ? "bg-stone-900 text-white"
+                      ? "bg-violet-600 text-white"
                       : "bg-white text-stone-700 ring-1 ring-stone-200 active:scale-95")
                   }
                 >
@@ -159,7 +159,7 @@ export default function FaceBuilderPage() {
                       className={
                         "block aspect-square w-full overflow-hidden rounded-xl bg-white transition-all " +
                         (isSelected
-                          ? "ring-4 ring-stone-900 ring-offset-2 ring-offset-white"
+                          ? "ring-4 ring-violet-600 ring-offset-2 ring-offset-white"
                           : "ring-1 ring-stone-200 active:scale-95")
                       }
                     >

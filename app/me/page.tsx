@@ -76,7 +76,7 @@ export default function MyWorksPage() {
 
         <Link
           href="/create"
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-3.5 text-base font-bold text-white shadow-sm active:scale-[0.98]"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-3.5 text-base font-bold text-white shadow-sm active:scale-[0.98]"
         >
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M12 5v14M5 12h14" />
@@ -93,7 +93,7 @@ export default function MyWorksPage() {
             <p className="mt-1 text-sm text-stone-600">사진 한 장으로 도안을 만들어 보세요.</p>
             <Link
               href="/create"
-              className="mt-4 inline-flex items-center justify-center rounded-full bg-stone-900 px-5 py-2.5 text-sm font-bold text-white"
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-violet-600 px-5 py-2.5 text-sm font-bold text-white"
             >
               새로 만들기
             </Link>
@@ -117,7 +117,7 @@ export default function MyWorksPage() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed inset-x-0 bottom-24 z-20 mx-auto w-fit max-w-[90%] rounded-full bg-stone-900/95 px-4 py-2 text-sm font-medium text-white shadow-lg"
+          className="fixed inset-x-0 bottom-24 z-20 mx-auto w-fit max-w-[90%] rounded-full bg-violet-600/95 px-4 py-2 text-sm font-medium text-white shadow-lg"
         >
           {toast}
         </div>

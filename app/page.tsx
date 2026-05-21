@@ -41,7 +41,7 @@ export default function Home() {
 
           <Link
             href="/create"
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-4 text-base font-bold text-white shadow-md transition active:scale-[0.98]"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-base font-bold text-white shadow-md transition active:scale-[0.98]"
           >
             <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M12 5v14M5 12h14" />
@@ -121,7 +121,7 @@ export default function Home() {
       <section className="px-5 pt-10">
         <Link
           href="/ranking"
-          className="flex items-center justify-between rounded-2xl bg-stone-900 px-5 py-4 text-white shadow-sm"
+          className="flex items-center justify-between rounded-2xl bg-violet-600 px-5 py-4 text-white shadow-sm"
         >
           <div>
             <p className="text-xs font-semibold text-amber-300">🏆 이번 주 랭킹</p>

@@ -189,7 +189,7 @@ export default function AnimalBuilder() {
             type="button"
             onClick={onColor}
             disabled={items.length === 0}
-            className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
+            className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
           >
             색칠하기
           </button>
