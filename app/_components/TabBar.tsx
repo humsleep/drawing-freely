@@ -29,7 +29,7 @@ export function TabBar() {
               aria-current={active ? "page" : undefined}
               className={
                 "flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium " +
-                (active ? "text-stone-900" : "text-stone-400")
+                (active ? "text-violet-600" : "text-stone-400")
               }
             >
               <Icon />

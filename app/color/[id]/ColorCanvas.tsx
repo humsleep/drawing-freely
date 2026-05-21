@@ -3,12 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TabBar } from "@/app/_components/TabBar";
-import {
-  ANIMALS,
-  ANIMAL_LABEL,
-  animalSrc,
-  type AnimalId,
-} from "@/lib/assets";
+import { ANIMALS, ANIMAL_LABEL, animalSrc, type AnimalId } from "@/lib/assets";
 import {
   getStoredWork,
   loadPendingColor,
@@ -19,7 +14,14 @@ import type { Work } from "@/lib/types";
 
 const STAMPS = ["⭐", "❤️", "☺️", "🌟", "🌸", "🦋", "🌈", "🐾"] as const;
 
-type Tool = "brush" | "crayon" | "marker" | "spray" | "stamp" | "bucket" | "eraser";
+type Tool =
+  | "bucket"
+  | "brush"
+  | "crayon"
+  | "marker"
+  | "spray"
+  | "stamp"
+  | "eraser";
 type Width = 6 | 12 | 24;
 
 const CANVAS_W = 800;
@@ -48,24 +50,17 @@ const COLORS = [
   { label: "검정", hex: "#1f1b16" },
 ] as const;
 
-const WIDTHS: { value: Width; label: string }[] = [
-  { value: 6, label: "얇게" },
-  { value: 12, label: "보통" },
-  { value: 24, label: "굵게" },
+/** 페인트 통이 첫 자리. 페인트통이 핵심 액션, 나머지는 보조. (Happy Color 패턴) */
+const TOOLS: { id: Tool; emoji: string; label: string }[] = [
+  { id: "bucket", emoji: "🪣", label: "페인트통" },
+  { id: "brush", emoji: "🖌️", label: "브러시" },
+  { id: "crayon", emoji: "🖍️", label: "크레용" },
+  { id: "marker", emoji: "✏️", label: "마커" },
+  { id: "spray", emoji: "💨", label: "스프레이" },
+  { id: "stamp", emoji: "⭐", label: "스탬프" },
+  { id: "eraser", emoji: "🧽", label: "지우개" },
 ];
 
-const TOOLS: { id: Tool; label: string; emoji: string }[] = [
-  { id: "brush", label: "브러시", emoji: "🖌️" },
-  { id: "crayon", label: "크레용", emoji: "🖍️" },
-  { id: "marker", label: "마커", emoji: "✏️" },
-  { id: "spray", label: "스프레이", emoji: "💨" },
-  { id: "stamp", label: "스탬프", emoji: "⭐" },
-  { id: "bucket", label: "페인트통", emoji: "🪣" },
-  { id: "eraser", label: "지우개", emoji: "🧽" },
-];
-
-/** 정적 자산(/assets) 기반 도안만 즉시 해결 가능. 빌더 저장본(`local-*`)은
- *  비동기로 storage 에서 읽어 setBuilderSrc로 별도 채운다. */
 function resolveLineArt(id: string): string | null {
   if (id.startsWith("animal-")) {
     const name = id.slice("animal-".length) as AnimalId;
@@ -74,9 +69,6 @@ function resolveLineArt(id: string): string | null {
   return null;
 }
 
-/** `local-*` 또는 `local`(pending) 의 빌더 도안 데이터 → 화면에 그릴 수 있는 src 로 변환.
- *  - dataURL(data:image/...) 은 그대로 반환
- *  - SVG 마크업 (`<svg ...`) 은 blob URL 로 감싸 반환 */
 function imageSrcFromBuilderData(data: string): string {
   if (data.startsWith("<svg") || data.startsWith("<?xml")) {
     const blob = new Blob([data], { type: "image/svg+xml" });
@@ -97,9 +89,7 @@ function defaultTitle(id: string, isLocal: boolean): string {
 
 export default function ColorCanvas({ id }: { id: string }) {
   const lineArtSrc = resolveLineArt(id);
-  // 빌더에서 만든 도안 (id === 'local' = pendingColor, id.startsWith('local-') = 저장본)
   const [builderSrc, setBuilderSrc] = useState<string | null>(null);
-  // 저장 시 lineArtData 로 함께 보관할 원본 빌더 도안 raw 데이터
   const builderRawRef = useRef<string | null>(null);
   const [builderReady, setBuilderReady] = useState(
     id !== "local" && !id.startsWith("local-"),
@@ -108,21 +98,22 @@ export default function ColorCanvas({ id }: { id: string }) {
   const paintRef = useRef<HTMLCanvasElement>(null);
   const lineRef = useRef<HTMLCanvasElement>(null);
 
-  const [tool, setTool] = useState<Tool>("brush");
+  /** 기본 도구 = 페인트통 (Happy Color 패턴). */
+  const [tool, setTool] = useState<Tool>("bucket");
   const [color, setColor] = useState<string>(COLORS[0].hex);
   const [width, setWidth] = useState<Width>(12);
   const [stampEmoji, setStampEmoji] = useState<string>(STAMPS[0]);
   const [toast, setToast] = useState<string>("");
   const [zoom, setZoom] = useState<number>(1);
 
-  // 멀티터치 관리 — 두 손가락 핀치 시 그리기 중단
-  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(
+    new Map(),
+  );
   const pinchInitial = useRef<{ dist: number; zoom: number } | null>(null);
 
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
-  // 히스토리
   const historyRef = useRef<ImageData[]>([]);
   const idxRef = useRef<number>(-1);
   const [, setHistoryVer] = useState(0);
@@ -143,23 +134,23 @@ export default function ColorCanvas({ id }: { id: string }) {
   function undo() {
     if (idxRef.current <= 0) return;
     idxRef.current -= 1;
-    const target = historyRef.current[idxRef.current];
-    paintRef.current?.getContext("2d")?.putImageData(target, 0, 0);
+    paintRef.current
+      ?.getContext("2d")
+      ?.putImageData(historyRef.current[idxRef.current], 0, 0);
     setHistoryVer((v) => v + 1);
   }
 
   function redo() {
     if (idxRef.current >= historyRef.current.length - 1) return;
     idxRef.current += 1;
-    const target = historyRef.current[idxRef.current];
-    paintRef.current?.getContext("2d")?.putImageData(target, 0, 0);
+    paintRef.current
+      ?.getContext("2d")
+      ?.putImageData(historyRef.current[idxRef.current], 0, 0);
     setHistoryVer((v) => v + 1);
   }
 
-  // 1) 빌더 출처(`local` 또는 저장본 `local-*`) 도안 로드
   useEffect(() => {
     if (id === "local") {
-      // 빌더에서 막 넘어옴
       const p = loadPendingColor();
       if (p) {
         builderRawRef.current = p.source;
@@ -167,7 +158,6 @@ export default function ColorCanvas({ id }: { id: string }) {
       }
       setBuilderReady(true);
     } else if (id.startsWith("local-")) {
-      // 저장본의 lineArtData 로 다시 색칠
       const w = getStoredWork(id);
       if (w?.lineArtData) {
         builderRawRef.current = w.lineArtData;
@@ -178,8 +168,7 @@ export default function ColorCanvas({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
-    const src =
-      id.startsWith("local") ? builderSrc : lineArtSrc;
+    const src = id.startsWith("local") ? builderSrc : lineArtSrc;
     if (!src) return;
     const lineCanvas = lineRef.current;
     const paint = paintRef.current;
@@ -195,7 +184,6 @@ export default function ColorCanvas({ id }: { id: string }) {
 
       const pctx = paint.getContext("2d");
       if (pctx) {
-        // 페인트 캔버스 초기화 + 히스토리 시작점
         pctx.clearRect(0, 0, paint.width, paint.height);
         const blank = pctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
         historyRef.current = [blank];
@@ -209,11 +197,9 @@ export default function ColorCanvas({ id }: { id: string }) {
     const canvas = paintRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: ((e.clientX - rect.left) * canvas.width) / rect.width,
+      y: ((e.clientY - rect.top) * canvas.height) / rect.height,
     };
   }
 
@@ -222,26 +208,22 @@ export default function ColorCanvas({ id }: { id: string }) {
     ctx.lineJoin = "round";
     ctx.lineWidth = width;
     ctx.globalAlpha = 1;
-
     if (tool === "eraser") {
       ctx.globalCompositeOperation = "destination-out";
       ctx.strokeStyle = "rgba(0,0,0,1)";
       ctx.fillStyle = "rgba(0,0,0,1)";
     } else if (tool === "crayon") {
-      // 크레용 — 반투명, 겹치면 진해짐
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 0.45;
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
     } else if (tool === "marker") {
-      // 마커 — 살짝 진한 단단한 선
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 0.85;
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
       ctx.lineWidth = Math.max(3, width - 2);
     } else {
-      // brush
       ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
@@ -255,12 +237,10 @@ export default function ColorCanvas({ id }: { id: string }) {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = color;
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
+      const a = Math.random() * Math.PI * 2;
       const r = Math.random() * radius;
-      const px = x + Math.cos(angle) * r;
-      const py = y + Math.sin(angle) * r;
       ctx.beginPath();
-      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+      ctx.arc(x + Math.cos(a) * r, y + Math.sin(a) * r, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -277,18 +257,17 @@ export default function ColorCanvas({ id }: { id: string }) {
 
   function onPointerDown(e: React.PointerEvent) {
     if (!paintRef.current) return;
-
-    // 멀티터치 핀치 시작
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (activePointers.current.size >= 2) {
       drawing.current = false;
       lastPoint.current = null;
       const pts = Array.from(activePointers.current.values());
-      const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-      pinchInitial.current = { dist, zoom };
+      pinchInitial.current = {
+        dist: Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y),
+        zoom,
+      };
       return;
     }
-
     paintRef.current.setPointerCapture(e.pointerId);
     const pos = getPos(e);
     if (!pos) return;
@@ -297,28 +276,22 @@ export default function ColorCanvas({ id }: { id: string }) {
       void doBucketFill(pos);
       return;
     }
+    const ctx = paintRef.current.getContext("2d");
+    if (!ctx) return;
     if (tool === "stamp") {
-      const ctx = paintRef.current.getContext("2d");
-      if (!ctx) return;
       drawStamp(ctx, pos.x, pos.y);
       snapshot();
       return;
     }
     if (tool === "spray") {
-      const ctx = paintRef.current.getContext("2d");
-      if (!ctx) return;
       drawSpray(ctx, pos.x, pos.y);
       drawing.current = true;
       lastPoint.current = pos;
       return;
     }
-
-    const ctx = paintRef.current.getContext("2d");
-    if (!ctx) return;
     applyToolStyle(ctx);
     drawing.current = true;
     lastPoint.current = pos;
-    // 한 번만 탭해도 점 찍힘
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, width / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -328,14 +301,12 @@ export default function ColorCanvas({ id }: { id: string }) {
     if (activePointers.current.has(e.pointerId)) {
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
-    // 핀치 줌
     if (activePointers.current.size >= 2 && pinchInitial.current) {
       const pts = Array.from(activePointers.current.values());
       const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-      const ratio = dist / pinchInitial.current.dist;
       const next = Math.min(
         ZOOM_MAX,
-        Math.max(ZOOM_MIN, pinchInitial.current.zoom * ratio),
+        Math.max(ZOOM_MIN, pinchInitial.current.zoom * (dist / pinchInitial.current.dist)),
       );
       setZoom(next);
       return;
@@ -345,7 +316,6 @@ export default function ColorCanvas({ id }: { id: string }) {
     if (!pos || !lastPoint.current) return;
     const ctx = paintRef.current?.getContext("2d");
     if (!ctx) return;
-
     if (tool === "spray") {
       drawSpray(ctx, pos.x, pos.y);
     } else {
@@ -361,7 +331,6 @@ export default function ColorCanvas({ id }: { id: string }) {
   function onPointerUp(e: React.PointerEvent) {
     activePointers.current.delete(e.pointerId);
     if (activePointers.current.size < 2) pinchInitial.current = null;
-
     if (drawing.current) {
       drawing.current = false;
       lastPoint.current = null;
@@ -375,7 +344,6 @@ export default function ColorCanvas({ id }: { id: string }) {
     const paint = paintRef.current;
     const line = lineRef.current;
     if (!paint || !line) return;
-
     const temp = document.createElement("canvas");
     temp.width = paint.width;
     temp.height = paint.height;
@@ -385,13 +353,11 @@ export default function ColorCanvas({ id }: { id: string }) {
     tctx.fillRect(0, 0, temp.width, temp.height);
     tctx.drawImage(paint, 0, 0);
     tctx.drawImage(line, 0, 0);
-
     const { default: FloodFill } = await import("q-floodfill");
     const imgData = tctx.getImageData(0, 0, temp.width, temp.height);
     const fill = new FloodFill(imgData);
     fill.fill(color, Math.floor(pos.x), Math.floor(pos.y), 30);
     tctx.putImageData(fill.imageData, 0, 0);
-
     const pctx = paint.getContext("2d");
     if (!pctx) return;
     pctx.globalCompositeOperation = "source-over";
@@ -457,16 +423,11 @@ export default function ColorCanvas({ id }: { id: string }) {
       likeCount: 0,
       pngData,
       createdAt: Date.now(),
-      // 빌더 도안은 자기 자신 id 로 sourceId 설정 → '다시 색칠' 가능
-      // 자산 도안(animal-*)은 원래 id 그대로
       sourceId: isFromBuilder ? newId : id,
-      // 빌더 도안은 원본 라인아트도 함께 보관 (자산은 /public 에 있어 불필요)
-      lineArtData: isFromBuilder
-        ? builderRawRef.current ?? undefined
-        : undefined,
+      lineArtData: isFromBuilder ? builderRawRef.current ?? undefined : undefined,
     };
     saveStoredWork(work);
-    showToast("내 작품에 저장됐어요");
+    showToast("저장됐어요");
   }
 
   function zoomIn() {
@@ -476,59 +437,54 @@ export default function ColorCanvas({ id }: { id: string }) {
     setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
   }
 
-  const hasLineArt =
-    id.startsWith("local") ? builderReady && !!builderSrc : !!lineArtSrc;
+  const hasLineArt = id.startsWith("local")
+    ? builderReady && !!builderSrc
+    : !!lineArtSrc;
 
   return (
     <>
+      {/* HEADER — 아이콘만 */}
       <header className="flex items-center justify-between px-5 pt-6">
-        <Link href="/create" className="text-sm font-medium text-stone-500">
-          ← 만들기
+        <Link
+          href="/create"
+          aria-label="뒤로"
+          className="grid size-10 place-items-center rounded-full bg-white text-stone-700 ring-1 ring-stone-200"
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </Link>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onDownload}
             disabled={!hasLineArt}
-            className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-stone-800 ring-1 ring-stone-200 disabled:text-stone-400"
+            aria-label="받기"
+            className="grid size-10 place-items-center rounded-full bg-white text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
           >
-            받기
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 4v12M6 12l6 6 6-6M5 20h14" />
+            </svg>
           </button>
           <button
             type="button"
             onClick={onSave}
             disabled={!hasLineArt}
-            className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-bold text-white disabled:bg-stone-400"
+            aria-label="내 작품에 저장"
+            className="grid size-10 place-items-center rounded-full bg-violet-600 text-white shadow-md disabled:bg-stone-400"
           >
-            저장
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 4h14v16l-7-4-7 4z" />
+            </svg>
           </button>
         </div>
       </header>
 
-      {!hasLineArt && !id.startsWith("local") && (
-        <p className="px-5 pt-3 text-xs text-rose-600">
-          도안을 찾을 수 없어요.{" "}
-          <Link href="/templates" className="underline">
-            도안 골라보기
-          </Link>
-        </p>
-      )}
-      {id.startsWith("local") && builderReady && !builderSrc && (
-        <p className="px-5 pt-3 text-xs text-rose-600">
-          색칠할 그림이 없어요.{" "}
-          <Link href="/create" className="underline">
-            새로 만들기
-          </Link>
-        </p>
-      )}
-
+      {/* CANVAS */}
       <section className="px-5 pt-3">
         <div
-          className="mx-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200"
-          style={{
-            aspectRatio: `${CANVAS_W} / ${CANVAS_H}`,
-            position: "relative",
-          }}
+          className="relative mx-auto w-full max-w-sm overflow-hidden rounded-3xl bg-white ring-1 ring-stone-200"
+          style={{ aspectRatio: `${CANVAS_W} / ${CANVAS_H}` }}
         >
           <div
             className="absolute inset-0"
@@ -556,7 +512,6 @@ export default function ColorCanvas({ id }: { id: string }) {
               className="pointer-events-none absolute inset-0 h-full w-full"
             />
           </div>
-          {/* 줌 컨트롤 — 우상단 */}
           <div className="absolute right-2 top-2 flex flex-col gap-1">
             <button
               type="button"
@@ -564,46 +519,117 @@ export default function ColorCanvas({ id }: { id: string }) {
               disabled={zoom >= ZOOM_MAX}
               aria-label="확대"
               className="grid size-8 place-items-center rounded-full bg-white/95 text-base font-bold text-stone-700 shadow ring-1 ring-stone-200 disabled:text-stone-300"
-            >
-              ＋
-            </button>
+            >＋</button>
             <button
               type="button"
               onClick={zoomOut}
               disabled={zoom <= ZOOM_MIN}
               aria-label="축소"
               className="grid size-8 place-items-center rounded-full bg-white/95 text-base font-bold text-stone-700 shadow ring-1 ring-stone-200 disabled:text-stone-300"
-            >
-              −
-            </button>
+            >−</button>
           </div>
         </div>
       </section>
 
-      {/* 도구 + 히스토리 (가로 스크롤 한 줄) */}
+      {/* 히스토리 + 지우기 — 작은 아이콘 줄 */}
       <section className="px-5 pt-3">
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {TOOLS.map((t) => (
-            <ToolButton
-              key={t.id}
-              active={tool === t.id}
-              onClick={() => setTool(t.id)}
-              label={t.label}
-              emoji={t.emoji}
-            />
-          ))}
-          <SmallIconButton onClick={undo} disabled={!canUndo} label="되돌리기">
-            ↺
-          </SmallIconButton>
-          <SmallIconButton onClick={redo} disabled={!canRedo} label="다시하기">
-            ↻
-          </SmallIconButton>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              aria-label="되돌리기"
+              className="grid size-10 place-items-center rounded-full bg-white text-xl font-bold text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
+            >↺</button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              aria-label="다시하기"
+              className="grid size-10 place-items-center rounded-full bg-white text-xl font-bold text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
+            >↻</button>
+          </div>
+          <button
+            type="button"
+            onClick={clearAll}
+            aria-label="전부 지우기"
+            className="grid size-10 place-items-center rounded-full bg-white text-stone-500 ring-1 ring-stone-200"
+          >
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />
+            </svg>
+          </button>
         </div>
       </section>
 
-      {/* 스탬프 종류 picker */}
+      {/* 색 팔레트 — 화면 폭 가득, 큰 swatch (Happy Color 패턴) */}
+      <section className="px-5 pt-3">
+        <ul
+          className="grid grid-cols-6 gap-2"
+          role="radiogroup"
+          aria-label="색"
+        >
+          {COLORS.map((c) => {
+            const isSelected = color === c.hex;
+            return (
+              <li key={c.hex}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  aria-label={c.label}
+                  onClick={() => setColor(c.hex)}
+                  className={
+                    "block aspect-square w-full rounded-full transition-all " +
+                    (isSelected
+                      ? "ring-4 ring-violet-600 ring-offset-2 ring-offset-[#fffaf3]"
+                      : "ring-1 ring-stone-200 active:scale-95")
+                  }
+                  style={{ background: c.hex }}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* 도구 — 선택된 도구가 크고 라벤더 (페인트통이 기본) */}
+      <section className="px-5 pt-4 pb-3">
+        <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+          {TOOLS.map((t) => {
+            const isSelected = tool === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTool(t.id)}
+                aria-pressed={isSelected}
+                aria-label={t.label}
+                className={
+                  "relative shrink-0 grid place-items-center rounded-2xl transition-all " +
+                  (isSelected
+                    ? "size-14 bg-violet-600 text-3xl shadow-md ring-2 ring-violet-600"
+                    : "size-10 bg-white text-xl ring-1 ring-stone-200 active:scale-95")
+                }
+              >
+                <span aria-hidden>{t.emoji}</span>
+                {isSelected && (
+                  <span
+                    className="absolute -bottom-1 right-0 size-4 rounded-full ring-2 ring-white"
+                    style={{ background: color }}
+                    aria-hidden
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 스탬프 종류 picker — 스탬프 선택 시만 */}
       {tool === "stamp" && (
-        <section className="px-5 pt-3">
+        <section className="px-5 pb-2">
           <ul
             className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
             role="radiogroup"
@@ -622,7 +648,7 @@ export default function ColorCanvas({ id }: { id: string }) {
                     className={
                       "grid size-10 place-items-center rounded-2xl text-xl transition-colors " +
                       (isSelected
-                        ? "bg-stone-900 ring-2 ring-stone-900"
+                        ? "bg-violet-600 ring-2 ring-violet-600"
                         : "bg-white ring-1 ring-stone-200 active:scale-95")
                     }
                   >
@@ -635,88 +661,44 @@ export default function ColorCanvas({ id }: { id: string }) {
         </section>
       )}
 
-      {/* 굵기 — 페인트통 외에는 적용 (스탬프 굵기는 크기 조절) */}
-      {tool !== "bucket" && (
-        <section className="px-5 pt-3">
-          <div className="grid grid-cols-3 gap-2">
-            {WIDTHS.map((w) => (
+      {/* 굵기 — 페인트통/스탬프 외에만, 아이콘만 */}
+      {tool !== "bucket" && tool !== "stamp" && (
+        <section className="px-5 pb-2">
+          <div className="flex items-center gap-2">
+            {[6, 12, 24].map((w) => (
               <button
-                key={w.value}
+                key={w}
                 type="button"
-                onClick={() => setWidth(w.value)}
-                aria-pressed={width === w.value}
+                onClick={() => setWidth(w as Width)}
+                aria-pressed={width === w}
+                aria-label={`굵기 ${w}`}
                 className={
-                  "flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold transition-colors " +
-                  (width === w.value
-                    ? "bg-stone-900 text-white"
-                    : "bg-white text-stone-700 ring-1 ring-stone-200")
+                  "grid h-10 flex-1 place-items-center rounded-2xl transition-colors " +
+                  (width === w
+                    ? "bg-violet-600"
+                    : "bg-white ring-1 ring-stone-200")
                 }
               >
                 <span
-                  className="inline-block rounded-full bg-current"
-                  style={{ width: w.value / 1.5, height: w.value / 1.5 }}
+                  className="inline-block rounded-full"
+                  style={{
+                    width: w / 1.5,
+                    height: w / 1.5,
+                    background: width === w ? "white" : "#57534e",
+                  }}
                   aria-hidden
                 />
-                {w.label}
               </button>
             ))}
           </div>
         </section>
       )}
 
-      {/* 색 + 전부 지우기 */}
-      <section className="px-5 pt-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="inline-block size-6 shrink-0 rounded-full ring-2 ring-stone-200"
-            style={{ background: color }}
-            aria-label="선택된 색"
-          />
-          <ul
-            className="flex flex-1 gap-2 overflow-x-auto pb-1"
-            role="radiogroup"
-            aria-label="색"
-          >
-            {COLORS.map((c) => {
-              const isSelected = color === c.hex;
-              return (
-                <li key={c.hex} className="shrink-0">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    aria-label={c.label}
-                    onClick={() => setColor(c.hex)}
-                    className={
-                      "size-9 rounded-full transition-all " +
-                      (isSelected
-                        ? "ring-4 ring-stone-900 ring-offset-2 ring-offset-white"
-                        : "ring-1 ring-stone-200 active:scale-95")
-                    }
-                    style={{ background: c.hex }}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-          <button
-            type="button"
-            onClick={clearAll}
-            aria-label="전부 지우기"
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-stone-100 text-stone-600"
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-            </svg>
-          </button>
-        </div>
-      </section>
-
       {toast && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed inset-x-0 bottom-24 z-20 mx-auto w-fit max-w-[90%] rounded-full bg-stone-900/95 px-4 py-2 text-sm font-medium text-white shadow-lg"
+          className="fixed inset-x-0 bottom-24 z-20 mx-auto w-fit max-w-[90%] rounded-full bg-violet-600/95 px-4 py-2 text-sm font-medium text-white shadow-lg"
         >
           {toast}
         </div>
@@ -724,61 +706,5 @@ export default function ColorCanvas({ id }: { id: string }) {
 
       <TabBar />
     </>
-  );
-}
-
-function ToolButton({
-  active,
-  onClick,
-  label,
-  emoji,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  emoji: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        "flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-2 py-2 text-[11px] font-semibold transition-colors " +
-        (active
-          ? "bg-stone-900 text-white"
-          : "bg-white text-stone-700 ring-1 ring-stone-200") +
-        " min-w-14"
-      }
-    >
-      <span className="text-lg" aria-hidden>
-        {emoji}
-      </span>
-      {label}
-    </button>
-  );
-}
-
-function SmallIconButton({
-  onClick,
-  disabled,
-  label,
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-xl font-bold text-stone-700 ring-1 ring-stone-200 disabled:text-stone-300"
-    >
-      {children}
-    </button>
   );
 }
